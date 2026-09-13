@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-paper text-ink font-sans;
+  }
+  ::selection {
+    background: #d5e3f0;
+  }
+  *:focus-visible {
+    outline: 2px solid #2b5c8a;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors duration-150 select-none cursor-pointer;
+  }
+  .btn-primary {
+    @apply btn bg-ink text-paper hover:bg-blued;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-ink border border-line2 hover:border-ink3 hover:bg-paper2;
+  }
+  .btn-ghost {
+    @apply btn text-ink2 hover:bg-paper2 hover:text-ink;
+  }
+  .btn-sm {
+    @apply px-2.5 py-1 text-xs;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium tracking-wide uppercase bg-paper2 text-ink2 border border-line;
+  }
+  .panel {
+    @apply bg-white border border-line;
+  }
+  .link-quiet {
+    @apply text-blue hover:text-blued underline decoration-line2 underline-offset-2 hover:decoration-blue transition-colors;
+  }
+  .input {
+    @apply w-full bg-white border border-line2 px-3 py-2 text-sm text-ink placeholder:text-ink4 focus:border-blue focus:outline-none;
+  }
+}
+
+/* KaTeX sizing — keep math slightly smaller than surrounding prose */
+.katex {
+  font-size: 1.04em;
+}
+.katex-display {
+  margin: 0.6em 0;
+  padding: 0.15em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.katex-display > .katex {
+  font-size: 1.06em;
+}
+.katex .mord, .katex .mrel, .katex .mop {
+  text-rendering: optimizeLegibility;
+}
+
+/* Slim, quiet scrollbars for panels */
+.slim-scroll::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+.slim-scroll::-webkit-scrollbar-thumb {
+  background: #d5d1c4;
+}
+.slim-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* subtle grid paper background for lab canvases */
+.grid-paper {
+  background-color: #fdfcfa;
+  background-image:
+    linear-gradient(#eef0ee 1px, transparent 1px),
+    linear-gradient(90deg, #eef0ee 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
