@@ -12,6 +12,16 @@ import { graphTheory1 } from '../data/concepts/graph-theory-1';
 import { graphTheory2 } from '../data/concepts/graph-theory-2';
 import { numberTheory1 } from '../data/concepts/number-theory-1';
 import { numberTheory2 } from '../data/concepts/number-theory-2';
+import { probability } from '../data/concepts/probability';
+import { statistics } from '../data/concepts/statistics';
+import { linearAlgebra } from '../data/concepts/linear-algebra';
+import { calculus } from '../data/concepts/calculus';
+import { optimization } from '../data/concepts/optimization';
+import { geometry } from '../data/concepts/geometry';
+import { abstractAlgebra } from '../data/concepts/abstract-algebra';
+import { informationTheory } from '../data/concepts/information-theory';
+import { numerical } from '../data/concepts/numerical';
+import { formal } from '../data/concepts/formal';
 
 export const allConcepts: Concept[] = [
   ...discrete1,
@@ -22,6 +32,16 @@ export const allConcepts: Concept[] = [
   ...graphTheory2,
   ...numberTheory1,
   ...numberTheory2,
+  ...probability,
+  ...statistics,
+  ...linearAlgebra,
+  ...calculus,
+  ...optimization,
+  ...geometry,
+  ...abstractAlgebra,
+  ...informationTheory,
+  ...numerical,
+  ...formal,
 ];
 
 export const conceptMap: Map<string, Concept> = new Map(allConcepts.map((c) => [c.id, c]));
