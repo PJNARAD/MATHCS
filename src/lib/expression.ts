@@ -221,7 +221,7 @@ export type Segment = { x: number; y: number }[];
 
 export function sampleFunction(f: (x: number) => number, x0: number, x1: number, n = 480): Segment[] {
   const segs: Segment[] = [];
-  let cur: Segment[] = [];
+  let cur: Segment = [];
   const dx = (x1 - x0) / n;
   let prevY: number | null = null;
   let prevX = x0;

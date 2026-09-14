@@ -364,7 +364,7 @@ export const gtTrees: Concept[] = [
         proof: [
           'Let e be the unique lightest edge across cut C, and let T be any MST not containing e.',
           'Add e to T: a cycle forms, and that cycle contains another edge f crossing C (it must reconnect the two sides).',
-          'By choice of e, w(e) < w(f). Swap: T' = T − f + e is a spanning tree of smaller weight — contradicting T’s minimality.',
+          'By choice of e, w(e) < w(f). Swap: T′ = T − f + e is a spanning tree of smaller weight — contradicting T’s minimality.',
           'So e is in every MST.',
         ] },
       { t: 'h', text: 'Kruskal’s algorithm' },

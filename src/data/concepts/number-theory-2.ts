@@ -385,7 +385,8 @@ export const ntModular: Concept[] = [
         explain: '9·18 = 162 = 7·23 + 1. (Extended Euclid: 23 = 2·9 + 5; 9 = 1·5 + 4; 5 = 1·4 + 1 → back-substitute: 1 = 5 − 4 = 5 − (9 − 5) = 2·5 − 9 = 2(23 − 2·9) − 9 = 2·23 − 5·9, so 9·(−5) ≡ 1, −5 ≡ 18.)',
       },
       { id: 'mi-p2', q: 'Why does 10 have no inverse mod 100? State the general criterion.', type: 'short', diff: 'easy',
-        answer: 'gcd(10, 100) = 10 ≠ 1. Criterion: an inverse exists iff gcd(a, n) = 1. 10x is always divisible by 10, never ≡ 1 mod 100.',
+        answer: 'gcd(10, 100) = 10 ≠ 1. Criterion: an inverse exists iff gcd(a, n) = 1.',
+        explain: '10x is always divisible by 10, so 10x mod 100 ∈ {0, 10, …, 90} — never 1.',
       },
     ],
   },
@@ -422,6 +423,7 @@ export const ntModular: Concept[] = [
     practice: [
       { id: 'lc-p1', q: 'Solve 5x ≡ 3 (mod 11).', type: 'short', diff: 'easy',
         answer: '5⁻¹ ≡ 9 (5·9 = 45 ≡ 1). x ≡ 3·9 = 27 ≡ 5 (mod 11). Check: 5·5 = 25 ≡ 3 ✓.',
+        explain: 'Invert the coefficient first: 5·9 = 45 = 4·11 + 1, so 5⁻¹ ≡ 9 (mod 11); multiply both sides by it.',
       },
       { id: 'lc-p2', q: 'How many solutions mod 30 does 6x ≡ 9 (mod 30) have? Justify.', type: 'short', diff: 'medium',
         answer: 'Zero solutions. d = gcd(6, 30) = 6, and 6 ∤ 9, so by the solvability criterion the congruence has no solution. Directly: 6x mod 30 ∈ {0, 6, 12, 18, 24} as x ranges — never 9.',
@@ -546,7 +548,7 @@ export const ntModular: Concept[] = [
       ] },
       { t: 'cs', items: [
         { area: 'RSA', how: 'φ(n) = (p−1)(q−1) is the modulus in which d inverts e — computing φ(n) requires knowing p and q (that is the private part of the key).' },
-        { area: 'Order of elements', why: 'The multiplicative order of a mod n divides φ(n) (Lagrange) — the backbone of discrete-log security parameters.', how: 'Choose primes p with p−1 having a large prime factor so that (ℤ/pℤ)× has a large-order subgroup.' },
+        { area: 'Order of elements', how: 'The multiplicative order of a mod n divides φ(n) (Lagrange) — the backbone of discrete-log security parameters. Choose primes p with p−1 having a large prime factor so that (ℤ/pℤ)× has a large-order subgroup.' },
       ] },
     ],
     practice: [
