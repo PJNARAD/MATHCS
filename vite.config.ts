@@ -7,6 +7,8 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: false,
+    // Preview environments proxy the dev server under sandbox-specific hostnames.
+    allowedHosts: true,
   },
   build: {
     chunkSizeWarningLimit: 1600,
