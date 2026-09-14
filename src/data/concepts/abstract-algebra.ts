@@ -1,0 +1,150 @@
+import type { Concept } from '../types';
+
+export const abstractAlgebra: Concept[] = [
+  {
+    id: 'groups',
+    title: 'Groups',
+    domain: 'abstract-algebra',
+    topic: true,
+    summary: 'A set G with operation * satisfying closure, associativity, identity, inverses. The abstraction of symmetry.',
+    level: 'foundational',
+    csFields: ['cryptography', 'theoretical-cs'],
+    prerequisites: ['set-operations', 'function-basics'],
+    related: ['finite-fields', 'modular-arithmetic-ops'],
+    next: ['subgroups'],
+    content: [
+      { t: 'def', title: 'Group', text: '(G,*) is group if: (1) closure: a*b∈G, (2) associativity: (a*b)*c=a*(b*c), (3) identity e: e*a=a*e=a, (4) inverse: ∀a ∃a^{-1}: a*a^{-1}=e. Abelian if a*b=b*a.' },
+      { t: 'ex', title: 'Examples', steps: [
+        '(ℤ,+) group, identity 0, inverse -a. Not group under multiplication (0 no inverse, 1/2 not integer).',
+        '(ℤ_n, + mod n) group, identity 0.',
+        '(ℝ\\{0}, ×) group.',
+        'Symmetries of square: 8 elements (4 rotations, 4 reflections) — dihedral group D4, non-abelian.',
+      ]},
+      { t: 'props', items: [
+        { title: 'Order', text: '|G| = number elements. Element order = smallest k>0 with a^k=e.' },
+        { title: 'Lagrange', text: 'Order of subgroup divides order of group.' },
+        { title: 'Cyclic', text: 'G = <g> = {g^k} for some g: all powers of one generator. ℤ_n cyclic.' },
+      ]},
+      { t: 'cs', items: [
+        { area: 'Cryptography', how: 'Discrete log problem in cyclic group: given g,g^x, find x — hard, basis of DH.' },
+      ]},
+    ],
+    practice: [
+      { id: 'group-p1', q: 'Is (ℕ,+) a group?', type: 'truefalse', diff: 'easy', options: ['True','False'], correct: 1, answer: 'False: no inverses (except 0).', explain: 'Fails inverse.' },
+    ],
+  },
+  {
+    id: 'subgroups',
+    title: 'Subgroups and Cosets',
+    domain: 'abstract-algebra',
+    parent: 'groups',
+    summary: 'H≤G if H⊆G and itself group. Coset aH = {ah|h∈H}. Lagrange: |G|=|H|·[G:H].',
+    level: 'core',
+    csFields: ['cryptography'],
+    prerequisites: ['groups'],
+    related: ['groups'],
+    content: [
+      { t: 'def', title: 'Subgroup', text: 'H≤G if closed under operation and inverses. Coset aH = {a*h | h∈H}. Left cosets partition G, all same size |H|.' },
+      { t: 'thm', name: 'Lagrange', statement: 'If H≤G finite, |H| divides |G|. Number of cosets [G:H]=|G|/|H|.', proof: ['Cosets partition G, each size |H|.']},
+      { t: 'ex', title: 'ℤ_12', steps: [
+        'G=ℤ_12 under +. H={0,4,8} subgroup (multiples of 4). |H|=3 divides 12.',
+        'Cosets: 0+H={0,4,8},1+H={1,5,9},2+H={2,6,10},3+H={3,7,11}: 4 cosets.',
+      ]},
+    ],
+    practice: [],
+  },
+  {
+    id: 'rings',
+    title: 'Rings',
+    domain: 'abstract-algebra',
+    parent: 'groups',
+    summary: 'Set with + (abelian group) and × (associative, distributes over +). Ring with 1 has multiplicative identity. Examples ℤ, ℤ_n, polynomials.',
+    level: 'core',
+    csFields: ['cryptography'],
+    prerequisites: ['groups'],
+    related: ['finite-fields', 'groups'],
+    content: [
+      { t: 'def', title: 'Ring', text: '(R,+,×): (R,+) abelian group, (R,×) associative, distributive: a(b+c)=ab+ac, (a+b)c=ac+bc. Commutative ring if × commutative. Ring with 1 if ∃1 with 1·a=a·1=a. Zero divisor: a≠0,b≠0 but ab=0.' },
+      { t: 'ex', title: 'Examples', steps: [
+        'ℤ ring with 1, no zero divisors (integral domain).',
+        'ℤ_6 ring with zero divisors: 2·3=0 mod6.',
+        'Polynomials ℝ[x] ring.',
+      ]},
+    ],
+    practice: [],
+  },
+  {
+    id: 'finite-fields',
+    title: 'Finite Fields',
+    domain: 'abstract-algebra',
+    parent: 'rings',
+    summary: 'Field: ring where every nonzero element has multiplicative inverse. Finite field GF(p) = ℤ_p for prime p, and GF(p^k) with p^k elements. Basis of AES and ECC.',
+    level: 'core',
+    csFields: ['cryptography', 'cybersecurity'],
+    prerequisites: ['rings', 'groups', 'modular-arithmetic-ops'],
+    related: ['groups', 'rsa-cryptography'],
+    next: ['elliptic-curves'],
+    content: [
+      { t: 'def', title: 'Field', text: 'Field F: (F,+) abelian group, (F\\{0},×) abelian group, distributive. Finite field with q=p^k elements exists for prime p, k≥1, unique up to isomorphism: GF(q). GF(p)=ℤ_p with mod p arithmetic.' },
+      { t: 'props', items: [
+        { title: 'GF(p)', text: 'Elements 0..p-1, +,-,×,÷ mod p (inverse via extended Euclid).' },
+        { title: 'GF(2^k)', text: 'Elements = polynomials degree <k over GF(2), mod irreducible polynomial of degree k. AES uses GF(2^8) with irreducible x^8+x^4+x^3+x+1.' },
+        { title: 'Multiplicative group', text: 'GF(q)\\{0} cyclic of order q-1: ∃generator g with powers covering all nonzero.' },
+      ]},
+      { t: 'ex', title: 'GF(7)', steps: [
+        'Elements 0..6. 3·5=15≡1 mod7, so 3^{-1}=5.',
+        'Generator 3: powers 3^1=3,3^2=2,3^3=6,3^4=4,3^5=5,3^6=1 cycles all nonzero.',
+      ]},
+      { t: 'cs', items: [
+        { area: 'AES', how: 'AES S-box: inversion in GF(2^8) plus affine transform.' },
+        { area: 'ECC', how: 'Elliptic curves over GF(p) or GF(2^k): group law uses field operations.' },
+        { area: 'Reed-Solomon', how: 'Error correction codes over GF(2^8) or GF(p): polynomial evaluation.' },
+      ]},
+    ],
+    practice: [
+      { id: 'ff-p1', q: 'In GF(7), what is 3^{-1}?', type: 'numeric', diff: 'easy', answer: '5', explain: '3*5=15≡1.' },
+      { id: 'ff-p2', q: 'How many elements in GF(2^8)?', type: 'numeric', diff: 'easy', answer: '256', explain: '2^8.' },
+    ],
+  },
+  {
+    id: 'elliptic-curves',
+    title: 'Elliptic Curves (Intro)',
+    domain: 'abstract-algebra',
+    parent: 'finite-fields',
+    summary: 'Curve $y²=x³+ax+b$ over field, with chord-and-tangent group law. Discrete log on curve is hard — basis of modern crypto.',
+    level: 'advanced',
+    csFields: ['cryptography', 'cybersecurity'],
+    prerequisites: ['finite-fields'],
+    related: ['finite-fields', 'groups'],
+    content: [
+      { t: 'def', title: 'Elliptic curve', text: 'Over field F (char ≠2,3): $y² = x³ + ax + b$ with discriminant $4a³+27b²≠0$ (no cusp). Points (x,y) satisfying plus point at infinity O. Group law: O identity, inverse of (x,y) is (x,-y), addition via chord: line through P,Q meets curve at third point R, reflect to get P+Q.' },
+      { t: 'ex', title: 'Small example', steps: [
+        'Curve y²=x³+2x+2 over GF(17). Points include (5,1) because 1²=25+10+2=37≡3? Wait 37 mod17=3, 1≠3... need valid point. Example: (0,6): 36≡2 mod17? 36 mod17=2, RHS 0+0+2=2 OK.',
+        'Group order counts points, used for crypto: choose curve with prime order subgroup large.',
+      ]},
+      { t: 'cs', items: [
+        { area: 'ECC', how: 'ECDH key exchange: private a, public aG (scalar mult). Security = ECDLP hardness.' },
+      ]},
+    ],
+    practice: [],
+  },
+  {
+    id: 'polynomial-rings',
+    title: 'Polynomial Rings',
+    domain: 'abstract-algebra',
+    parent: 'rings',
+    summary: 'R[x]: polynomials with coefficients in R. Division algorithm, gcd, irreducible polynomials analogous to primes.',
+    level: 'core',
+    csFields: ['cryptography'],
+    prerequisites: ['rings'],
+    related: ['finite-fields'],
+    content: [
+      { t: 'def', title: 'Polynomial ring', text: 'R[x] = {a0+a1x+...+anx^n | ai∈R}. Degree, leading coeff. Over field, division algorithm: for f,g≠0, ∃q,r with f=qg+r, deg r < deg g.' },
+      { t: 'ex', title: 'GF(2)[x]', steps: [
+        'Coefficients mod2: 1+1=0.',
+        'x²+x+1 irreducible over GF(2) (no root 0,1). Used to build GF(4)=GF(2)[x]/(x²+x+1).',
+      ]},
+    ],
+    practice: [],
+  },
+];

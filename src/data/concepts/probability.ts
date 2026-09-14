@@ -1,0 +1,427 @@
+import type { Concept } from '../types';
+
+export const probability: Concept[] = [
+  {
+    id: 'probability-axioms',
+    title: 'Probability Axioms',
+    domain: 'probability',
+    topic: true,
+    summary: 'The three Kolmogorov axioms that define probability: non-negativity, unit measure, and countable additivity. Every rule of probability follows from them.',
+    level: 'foundational',
+    csFields: ['ai', 'ml', 'data-science', 'cybersecurity', 'computer-networks', 'distributed-systems'],
+    prerequisites: ['set-basics', 'set-operations'],
+    related: ['sample-spaces-events', 'conditional-probability', 'bayes-theorem'],
+    next: ['sample-spaces-events'],
+    content: [
+      { t: 'intuition', text: 'Probability is a way to assign a number in [0,1] to events — subsets of possible outcomes — so that the numbers behave sensibly. The axioms are the minimal contract: nothing gets negative probability, the whole space gets 1, and disjoint events add. From these three, everything else (complement rule, inclusion-exclusion, conditional probability) is a theorem.' },
+      { t: 'def', title: 'Kolmogorov axioms', text: 'A probability space is $(\\Omega, \\mathcal{F}, P)$ where $\\Omega$ is the sample space, $\\mathcal{F}$ a σ-algebra of events, and $P: \\mathcal{F} \\to [0,1]$ satisfies: (1) $P(A) \\ge 0$ for all $A$, (2) $P(\\Omega)=1$, (3) If $A_1, A_2, \\dots$ are disjoint then $P(\\cup_i A_i)=\\sum_i P(A_i)$.' },
+      { t: 'props', title: 'Immediate consequences', items: [
+        { title: 'Complement', text: '$P(A^c)=1-P(A)$.' },
+        { title: 'Empty set', text: '$P(\\emptyset)=0$.' },
+        { title: 'Monotonicity', text: 'If $A\\subseteq B$ then $P(A)\\le P(B)$.' },
+        { title: 'Finite additivity', text: 'Disjoint finite union adds: $P(A\\cup B)=P(A)+P(B)$.' },
+        { title: 'Inclusion–exclusion', text: '$P(A\\cup B)=P(A)+P(B)-P(A\\cap B)$.' },
+      ]},
+      { t: 'ex', title: 'Die roll', steps: [
+        '$\\Omega=\\{1,2,3,4,5,6\\}$, $\\mathcal{F}=2^\\Omega$, $P(\\{i\\})=1/6$.',
+        'Event “even”: $A=\\{2,4,6\\}$, $P(A)=3/6=1/2$.',
+        'Complement “odd”: $P(A^c)=1-1/2=1/2$.',
+      ]},
+      { t: 'cs', items: [
+        { area: 'Randomized algorithms', how: 'Axioms justify Monte Carlo analysis: the probability of failure is a number obeying these rules, so union bounds and complements apply.' },
+        { area: 'ML', how: 'Every loss defined as expected risk relies on $P$ being a measure.' },
+      ]},
+    ],
+    practice: [
+      { id: 'pa-p1', q: 'Prove $P(\\emptyset)=0$ from the axioms.', type: 'proof', diff: 'easy', answer: '$\\Omega$ and $\\emptyset$ are disjoint with union $\\Omega$: $P(\\Omega)=P(\\Omega)+P(\\emptyset)$ by additivity, so $P(\\emptyset)=0$.', explain: 'Additivity with $A_1=\\Omega, A_2=\\emptyset$.' },
+      { id: 'pa-p2', q: 'If $P(A)=0.3$, $P(B)=0.5$, and $A\\cap B=\\emptyset$, what is $P(A\\cup B)$?', type: 'numeric', diff: 'easy', answer: '0.8', explain: 'Disjoint additivity: 0.3+0.5=0.8.' },
+    ],
+  },
+  {
+    id: 'sample-spaces-events',
+    title: 'Sample Spaces and Events',
+    domain: 'probability',
+    parent: 'probability-axioms',
+    summary: 'The modeling step: Ω lists all outcomes, events are subsets. The language that turns real problems into probability calculations.',
+    level: 'foundational',
+    csFields: ['ai', 'ml', 'data-science'],
+    prerequisites: ['probability-axioms'],
+    related: ['classical-probability', 'conditional-probability'],
+    content: [
+      { t: 'def', title: 'Sample space and event', text: '$\\Omega$ is the set of possible outcomes of an experiment. An event is a subset $A\\subseteq\\Omega$. The collection $\\mathcal{F}$ of events we can assign probability to must be closed under complement and countable union (a σ-algebra).' },
+      { t: 'ex', title: 'Examples', steps: [
+        'Two coin flips: $\\Omega=\\{HH,HT,TH,TT\\}$; event “at least one H” = $\\{HH,HT,TH\\}$.',
+        'Server latency in ms: $\\Omega=[0,\\infty)$; event “timeout” = $(100,\\infty)$.',
+        '52-card hand: $\\Omega=\\binom{52}{5}$ equally likely; event “flush” = 4·C(13,5).',
+      ]},
+    ],
+    practice: [
+      { id: 'sse-p1', q: 'A system has 3 binary components. List Ω and count events.', type: 'short', diff: 'easy', answer: 'Ω={000,001,010,011,100,101,110,111}, |Ω|=8, |F|=2^8=256 events.', explain: 'Each component 0/1, product space.' },
+    ],
+  },
+  {
+    id: 'classical-probability',
+    title: 'Classical Probability and Counting',
+    domain: 'probability',
+    parent: 'probability-axioms',
+    summary: 'When outcomes are equally likely, $P(A)=|A|/|Ω|$. Counting becomes probability.',
+    level: 'foundational',
+    csFields: ['competitive-programming', 'algorithms-dsa'],
+    prerequisites: ['sample-spaces-events', 'combinations'],
+    related: ['pigeonhole-principle', 'binomial-coefficients'],
+    content: [
+      { t: 'def', title: 'Equally likely', text: 'If Ω is finite and each singleton has same probability $1/|Ω|$, then $P(A)=|A|/|Ω|$.' },
+      { t: 'ex', title: 'Poker flush', steps: [
+        'Total hands: C(52,5)=2,598,960.',
+        'Flushes: 4 suits × C(13,5)=4×1287=5148.',
+        'P(flush)=5148/2,598,960≈0.00198.',
+      ]},
+      { t: 'cs', items: [
+        { area: 'Hash collisions', how: 'Birthday paradox: P(collision) computed via classical counting over Ω = m^k.' },
+      ]},
+    ],
+    practice: [
+      { id: 'cpb-p1', q: 'Two dice rolled. P(sum=7)?', type: 'numeric', diff: 'easy', answer: '6/36=1/6', explain: 'Pairs (1,6),(2,5),(3,4),(4,3),(5,2),(6,1).' },
+    ],
+  },
+  {
+    id: 'conditional-probability',
+    title: 'Conditional Probability',
+    domain: 'probability',
+    parent: 'probability-axioms',
+    summary: '$P(A|B)=P(A∩B)/P(B)$: updating beliefs when B is known. The foundation of inference.',
+    level: 'core',
+    csFields: ['ai', 'ml', 'nlp', 'data-science', 'cybersecurity'],
+    prerequisites: ['probability-axioms'],
+    related: ['bayes-theorem', 'independence'],
+    next: ['bayes-theorem'],
+    content: [
+      { t: 'def', title: 'Conditional probability', text: 'For $P(B)>0$, $P(A|B)=\\frac{P(A\\cap B)}{P(B)}$. Intuition: restrict sample space to $B$, renormalize.' },
+      { t: 'formula', name: 'Multiplication rule', latex: 'P(A\\cap B)=P(B)P(A|B)=P(A)P(B|A)', note: 'Chain rule extends to many events.' },
+      { t: 'ex', title: 'Medical test', steps: [
+        'Disease prevalence 1%: P(D)=0.01.',
+        'Test sensitivity 99%: P(+|D)=0.99.',
+        'False positive 5%: P(+|¬D)=0.05.',
+        'P(D|+) = P(+|D)P(D)/[P(+|D)P(D)+P(+|¬D)P(¬D)] ≈ 0.166 — only 16.6% despite positive test (base rate fallacy).',
+      ]},
+      { t: 'cs', items: [
+        { area: 'Spam filter', how: 'P(spam|words) ∝ P(words|spam)P(spam) — conditional probability is the classifier.' },
+        { area: 'Cache hit', how: 'P(hit|recent access) > P(hit) — locality conditions probability.' },
+      ]},
+    ],
+    practice: [
+      { id: 'cond-p1', q: 'P(A)=0.4, P(B)=0.5, P(A∩B)=0.2. Find P(A|B) and P(B|A).', type: 'numeric', diff: 'easy', answer: 'P(A|B)=0.4, P(B|A)=0.5', explain: '0.2/0.5=0.4; 0.2/0.4=0.5.' },
+      { id: 'cond-p2', q: 'Prove law of total probability: P(A)=Σ_i P(A|B_i)P(B_i) for partition {B_i}.', type: 'proof', diff: 'medium', answer: 'A=∪_i (A∩B_i) disjoint, so P(A)=Σ P(A∩B_i)=Σ P(A|B_i)P(B_i).', explain: 'Partition + additivity + definition of conditional.' },
+    ],
+  },
+  {
+    id: 'independence',
+    title: 'Independence',
+    domain: 'probability',
+    parent: 'conditional-probability',
+    summary: 'A and B independent iff $P(A∩B)=P(A)P(B)$ iff $P(A|B)=P(A)$. One event tells nothing about the other.',
+    level: 'core',
+    csFields: ['ai', 'ml', 'distributed-systems'],
+    prerequisites: ['conditional-probability'],
+    related: ['conditional-probability', 'bayes-theorem'],
+    content: [
+      { t: 'def', title: 'Independence', text: 'Events $A,B$ independent if $P(A\\cap B)=P(A)P(B)$. Random variables $X,Y$ independent if $P(X∈A, Y∈B)=P(X∈A)P(Y∈B)$ for all measurable $A,B$.' },
+      { t: 'props', items: [
+        { title: 'Mutual vs pairwise', text: 'Pairwise independence does not imply mutual independence (Bernstein tetrahedron).' },
+        { title: 'Functions preserve', text: 'If X,Y independent, so are f(X), g(Y).' },
+        { title: 'Product rule', text: 'For independent $X_i$, $P(\\cap_i A_i)=\\prod_i P(A_i)$.' },
+      ]},
+      { t: 'ex', title: 'Two coin flips', steps: [
+        'First H independent of second H: P(H1∩H2)=1/4 = 1/2·1/2.',
+        'But events H1 and “same face” are not independent: P(H1∩same)=P(HH)=1/4 ≠ 1/2·1/2.',
+      ]},
+    ],
+    practice: [
+      { id: 'ind-p1', q: 'If P(A)=0.5, P(B)=0.5, and independent, P(A∪B)?', type: 'numeric', diff: 'easy', answer: '0.75', explain: '0.5+0.5-0.25=0.75.' },
+    ],
+  },
+  {
+    id: 'bayes-theorem',
+    title: 'Bayes’ Theorem',
+    domain: 'probability',
+    parent: 'conditional-probability',
+    summary: 'Inverting conditionals: $P(H|E)=P(E|H)P(H)/P(E)$. The engine of Bayesian inference and learning.',
+    level: 'core',
+    csFields: ['ai', 'ml', 'nlp', 'data-science', 'cybersecurity'],
+    prerequisites: ['conditional-probability'],
+    related: ['conditional-probability', 'maximum-likelihood'],
+    next: ['random-variables'],
+    content: [
+      { t: 'formula', name: "Bayes' theorem", latex: 'P(H|E)=\\frac{P(E|H)P(H)}{P(E)} = \\frac{P(E|H)P(H)}{\\sum_i P(E|H_i)P(H_i)}', note: 'Posterior ∝ Likelihood × Prior.' },
+      { t: 'thm', name: "Bayes' theorem", statement: 'For partition {H_i} of Ω, $P(H_j|E)=P(E|H_j)P(H_j)/\\sum_i P(E|H_i)P(H_i)$.', proof: [
+        'By definition $P(H_j|E)=P(H_j∩E)/P(E)$.',
+        'Numerator $P(H_j∩E)=P(E|H_j)P(H_j)$ by multiplication rule.',
+        'Denominator $P(E)=\\sum_i P(E∩H_i)=\\sum_i P(E|H_i)P(H_i)$ by law of total probability.',
+      ]},
+      { t: 'ex', title: 'Spam filtering', steps: [
+        'Prior P(spam)=0.2.',
+        'Word “lottery” appears in 80% spam, 5% ham.',
+        'Observe “lottery”: P(spam|word)=0.8·0.2/(0.8·0.2+0.05·0.8)=0.16/(0.16+0.04)=0.8 — posterior 80%.',
+      ]},
+      { t: 'cs', items: [
+        { area: 'Naive Bayes', how: 'Text classification: P(class|doc) ∝ P(class)∏ P(word|class).' },
+        { area: 'Bayesian networks', how: 'Large joint distributions factor via conditional independence, inference is repeated Bayes.' },
+      ]},
+    ],
+    practice: [
+      { id: 'bayes-p1', q: 'Disease 1% prevalence, test 99% sensitive, 5% false positive. P(disease|+)?', type: 'numeric', diff: 'medium', answer: '~0.166', explain: '0.99*0.01/(0.99*0.01+0.05*0.99)=0.0099/(0.0099+0.0495)=0.166.' },
+      { id: 'bayes-p2', q: 'Why does Naive Bayes assume conditional independence of features given class?', type: 'short', diff: 'medium', answer: 'To factor P(features|class)=∏ P(feature_i|class), making estimation tractable: O(vocab·classes) instead of O(vocab^classes).', explain: 'Independence assumption reduces parameters exponentially.' },
+    ],
+  },
+  {
+    id: 'random-variables',
+    title: 'Random Variables',
+    domain: 'probability',
+    parent: 'bayes-theorem',
+    summary: 'A random variable is a measurable function $X:Ω→ℝ$. Distribution, CDF, PMF/PDF — the object that carries probability into numbers.',
+    level: 'core',
+    csFields: ['ml', 'data-science', 'nlp', 'ai'],
+    prerequisites: ['probability-axioms'],
+    related: ['expectation', 'variance-covariance', 'normal-distribution'],
+    next: ['expectation'],
+    content: [
+      { t: 'def', title: 'Random variable', text: '$X:Ω→ℝ$ measurable: {ω: X(ω)≤x}∈𝓕 for all x. CDF $F_X(x)=P(X≤x)$; for discrete, PMF $p_X(x)=P(X=x)$; for continuous with density $f$, $F_X(x)=∫_{-∞}^x f(t)dt$.' },
+      { t: 'props', items: [
+        { title: 'Discrete vs continuous', text: 'Discrete: countable range, PMF sums to 1. Continuous: PDF integrates to 1, P(X=x)=0.' },
+        { title: 'Functions of RVs', text: 'If X is RV, so is g(X) for Borel g.' },
+        { title: 'Joint', text: 'Joint CDF $F_{X,Y}(x,y)=P(X≤x,Y≤y)$; marginal $F_X(x)=F_{X,Y}(x,∞)$.' },
+      ]},
+      { t: 'ex', title: 'Bernoulli', steps: [
+        'X∈{0,1}, P(X=1)=p: models coin flip, bit error, click.',
+        'CDF: 0 for x<0, 1-p for 0≤x<1, 1 for x≥1.',
+      ]},
+      { t: 'cs', items: [
+        { area: 'Data columns', how: 'Each feature column is a random variable; dataset is i.i.d. sample.' },
+      ]},
+    ],
+    practice: [
+      { id: 'rv-p1', q: 'If X~Bernoulli(p), what is P(X=0)?', type: 'numeric', diff: 'easy', answer: '1-p', explain: 'Complement.' },
+    ],
+  },
+  {
+    id: 'expectation',
+    title: 'Expectation and Variance',
+    domain: 'probability',
+    parent: 'random-variables',
+    summary: '$E[X]=∑ x p(x)$ or $∫ x f(x)dx$: the average. Variance $Var(X)=E[(X-E[X])^2]$: spread. Linearity of expectation is the workhorse.',
+    level: 'core',
+    csFields: ['ml', 'data-science', 'ai', 'theoretical-cs'],
+    prerequisites: ['random-variables'],
+    related: ['variance-covariance', 'normal-distribution'],
+    next: ['variance-covariance'],
+    content: [
+      { t: 'def', title: 'Expectation', text: 'Discrete: $E[X]=\\sum_x x P(X=x)$. Continuous: $E[X]=\\int x f(x)dx$. For function $g$: $E[g(X)]=\\sum g(x)p(x)$ (law of the unconscious statistician).' },
+      { t: 'formula', name: 'Variance', latex: 'Var(X)=E[X^2]-E[X]^2 = E[(X-E[X])^2]', note: 'Std dev σ=√Var.' },
+      { t: 'thm', name: 'Linearity of expectation', statement: '$E[aX+bY]=aE[X]+bE[Y]$ even if X,Y dependent. Also $E[\\sum_i X_i]=\\sum_i E[X_i]$.', proof: [
+        'Discrete: E[∑X_i]=∑_ω (∑X_i(ω))P(ω)=∑_i ∑_ω X_i(ω)P(ω)=∑_i E[X_i] by swapping sums.',
+        'No independence needed — the sum splits, joint distribution does not matter.',
+      ]},
+      { t: 'ex', title: 'Coupon collector', steps: [
+        'n coupons, each box uniform. Time to collect all: T=∑_{k=0}^{n-1} T_k where T_k is time to get new after k distinct.',
+        'T_k ~ Geometric(p=(n-k)/n) with E[T_k]=n/(n-k).',
+        'E[T]=n·H_n = n(ln n + γ)+1/2... ≈ n ln n.',
+      ]},
+      { t: 'cs', items: [
+        { area: 'Hash tables', how: 'Expected chain length = load factor α = n/m, by linearity.' },
+        { area: 'Quicksort', how: 'Expected comparisons O(n log n) via linearity over indicator of pair comparison.' },
+      ]},
+    ],
+    practice: [
+      { id: 'exp-p1', q: 'X fair die. E[X]?', type: 'numeric', diff: 'easy', answer: '3.5', explain: '(1+2+3+4+5+6)/6=3.5.' },
+      { id: 'exp-p2', q: 'Prove Var(aX+b)=a²Var(X).', type: 'proof', diff: 'medium', answer: 'E[aX+b]=aE[X]+b, so (aX+b - E[...])=a(X-E[X]), square and take expectation: a²Var.', explain: 'Shift does not affect variance, scaling squares.' },
+    ],
+  },
+  {
+    id: 'variance-covariance',
+    title: 'Variance, Covariance, and Correlation',
+    domain: 'probability',
+    parent: 'expectation',
+    summary: 'Variance measures spread, covariance measures joint variation, correlation normalizes it to [-1,1]. The language of dependence.',
+    level: 'core',
+    csFields: ['data-science', 'ml', 'hci'],
+    prerequisites: ['expectation'],
+    related: ['correlation', 'normal-distribution'],
+    content: [
+      { t: 'def', title: 'Covariance', text: '$Cov(X,Y)=E[(X-E[X])(Y-E[Y])]=E[XY]-E[X]E[Y]$. $Var(X)=Cov(X,X)$. Correlation $ρ= Cov(X,Y)/(σ_X σ_Y) ∈ [-1,1]$.' },
+      { t: 'props', items: [
+        { title: 'Independent ⇒ uncorrelated', text: 'If independent, Cov=0, but converse false (e.g., X uniform [-1,1], Y=X²: Cov=0 but dependent).' },
+        { title: 'Bilinear', text: 'Cov(aX+bY, Z)=aCov(X,Z)+bCov(Y,Z).' },
+        { title: 'Var sum', text: 'Var(∑X_i)=∑Var(X_i)+2∑_{i<j}Cov(X_i,X_j); if independent, cross terms vanish.' },
+      ]},
+      { t: 'ex', title: 'Portfolio variance', steps: [
+        'Two assets returns R1,R2 with variances σ1²,σ2², correlation ρ.',
+        'Portfolio wR1+(1-w)R2 variance = w²σ1²+(1-w)²σ2²+2w(1-w)ρσ1σ2.',
+        'Diversification: ρ<1 reduces variance vs weighted average.',
+      ]},
+    ],
+    practice: [
+      { id: 'cov-p1', q: 'If X,Y independent, Var(X+Y)?', type: 'short', diff: 'easy', answer: 'Var(X)+Var(Y)', explain: 'Cov=0.' },
+    ],
+  },
+  {
+    id: 'bernoulli-binomial',
+    title: 'Bernoulli and Binomial',
+    domain: 'probability',
+    parent: 'expectation',
+    summary: 'Bernoulli(p): single trial. Binomial(n,p): sum of n independent Bernoullis. The counting distribution of successes.',
+    level: 'core',
+    csFields: ['data-science', 'competitive-programming', 'theoretical-cs'],
+    prerequisites: ['expectation'],
+    related: ['normal-distribution', 'binomial-coefficients'],
+    content: [
+      { t: 'def', title: 'Binomial', text: 'If $X=\\sum_{i=1}^n B_i$ with $B_i\\sim Bernoulli(p)$ i.i.d., then $P(X=k)=\\binom{n}{k}p^k(1-p)^{n-k}$, $E[X]=np$, $Var(X)=np(1-p)$.' },
+      { t: 'ex', title: 'Polling', steps: [
+        '100 voters, each supports A with p=0.55 independently.',
+        'P(A majority) = Σ_{k=51}^{100} C(100,k)0.55^k0.45^{100-k} ≈ 0.84.',
+        'Approximated by normal N(np, np(1-p)).',
+      ]},
+    ],
+    practice: [
+      { id: 'bb-p1', q: 'X~Bin(10,0.3). E[X] and Var?', type: 'numeric', diff: 'easy', answer: '3, 2.1', explain: 'np=3, np(1-p)=2.1.' },
+    ],
+  },
+  {
+    id: 'normal-distribution',
+    title: 'Normal Distribution',
+    domain: 'probability',
+    parent: 'bernoulli-binomial',
+    summary: 'The bell curve $N(μ,σ²)$ with density $(2πσ²)^{-1/2}exp(-(x-μ)²/2σ²)$. Central limit theorem makes it universal.',
+    level: 'core',
+    csFields: ['ml', 'data-science', 'deep-learning', 'robotics'],
+    prerequisites: ['expectation', 'variance-covariance'],
+    related: ['central-limit-theorem', 'confidence-intervals'],
+    content: [
+      { t: 'def', title: 'Normal', text: 'PDF $f(x)=\\frac{1}{\\sqrt{2πσ²}}e^{-(x-μ)²/2σ²}$, CDF $Φ$ no closed form, $E[X]=μ$, $Var=σ²$. Standard $Z=(X-μ)/σ∼N(0,1)$.' },
+      { t: 'props', items: [
+        { title: '68-95-99.7 rule', text: 'P(|X-μ|≤σ)≈0.68, ≤2σ≈0.95, ≤3σ≈0.997.' },
+        { title: 'Sum of normals', text: 'Independent normals sum to normal: N(μ1,σ1²)+N(μ2,σ2²)=N(μ1+μ2,σ1²+σ2²).' },
+        { title: 'CLT', text: 'Average of i.i.d. with finite variance → normal as n→∞, regardless of original distribution.' },
+      ]},
+      { t: 'cs', items: [
+        { area: 'Weight init', how: 'Deep nets initialize N(0,σ²) to keep activations stable.' },
+        { area: 'Noise model', how: 'Sensor noise and measurement error modeled as Gaussian.' },
+      ]},
+    ],
+    practice: [
+      { id: 'norm-p1', q: 'X~N(0,1). P(|X|≤1)?', type: 'numeric', diff: 'easy', answer: '~0.68', explain: '68% rule.' },
+    ],
+  },
+  {
+    id: 'markov-chains',
+    title: 'Markov Chains',
+    domain: 'probability',
+    parent: 'conditional-probability',
+    summary: 'A sequence where $P(X_{t+1}|X_t,...,X_0)=P(X_{t+1}|X_t)$: future depends only on present. Transition matrix $P$, stationary distribution $πP=π$.',
+    level: 'advanced',
+    csFields: ['ai', 'nlp', 'computer-networks', 'cloud-computing', 'distributed-systems', 'information-retrieval'],
+    prerequisites: ['conditional-probability', 'matrix-multiplication'],
+    related: ['queueing', 'random-variables'],
+    content: [
+      { t: 'def', title: 'Markov chain', text: 'State space S, transition matrix $P$ with $P_{ij}=P(X_{t+1}=j|X_t=i)$, $\\sum_j P_{ij}=1$. n-step $P^n$ gives n-step transition probabilities. Stationary $π$ satisfies $π=πP$, $\\sum π_i=1$.' },
+      { t: 'ex', title: 'Weather', steps: [
+        'States {Sunny,Rainy}, P=[[0.8,0.2],[0.4,0.6]].',
+        'If today Sunny, tomorrow Sunny 0.8, Rainy 0.2.',
+        'Stationary: solve π=[π_S,π_R], π_S=0.8π_S+0.4π_R, π_S+π_R=1 → π_S=2/3, π_R=1/3.',
+      ]},
+      { t: 'cs', items: [
+        { area: 'PageRank', how: 'Web graph as Markov chain: random surfer, stationary = PageRank.' },
+        { area: 'MCMC', how: 'Sampling via Markov chains that have target as stationary.' },
+      ]},
+    ],
+    practice: [
+      { id: 'mc-p1', q: 'Chain with P=[[0,1],[1,0]]. Stationary?', type: 'short', diff: 'medium', answer: '[0.5,0.5] but periodic, does not converge from all starts, but stationary equation holds.', explain: 'Solve π=πP.' },
+    ],
+  },
+  {
+    id: 'law-of-large-numbers',
+    title: 'Law of Large Numbers',
+    domain: 'probability',
+    parent: 'expectation',
+    summary: 'Sample average → expectation as n→∞. Weak: convergence in probability; Strong: almost sure.',
+    level: 'advanced',
+    csFields: ['data-science', 'ml'],
+    prerequisites: ['expectation', 'variance-covariance'],
+    related: ['central-limit-theorem', 'normal-distribution'],
+    content: [
+      { t: 'thm', name: 'Weak LLN', statement: 'If $X_i$ i.i.d. with $E[X]=μ$, $Var<∞$, then $\\bar X_n=\\frac1n\\sum_{i=1}^n X_i \\xrightarrow{P} μ$: for any ε>0, $P(|\\bar X_n-μ|>ε)→0$.', proof: [
+        'Chebyshev: $P(|\\bar X_n-μ|>ε) ≤ Var(\\bar X_n)/ε² = σ²/(nε²) →0.',
+      ]},
+      { t: 'cs', items: [
+        { area: 'Monte Carlo', how: 'Estimating π by random points: average → true value by LLN.' },
+      ]},
+    ],
+    practice: [
+      { id: 'lln-p1', q: 'Why does averaging many runs reduce variance?', type: 'short', diff: 'easy', answer: 'Var(mean)=σ²/n, so std dev σ/√n →0.', explain: 'Variance of average scales 1/n.' },
+    ],
+  },
+  {
+    id: 'central-limit-theorem',
+    title: 'Central Limit Theorem',
+    domain: 'probability',
+    parent: 'law-of-large-numbers',
+    summary: 'Sum of i.i.d. with finite variance, properly normalized, → N(0,1). Explains why normal appears everywhere.',
+    level: 'advanced',
+    csFields: ['data-science', 'ml', 'hci'],
+    prerequisites: ['normal-distribution', 'law-of-large-numbers'],
+    related: ['normal-distribution', 'confidence-intervals'],
+    content: [
+      { t: 'thm', name: 'CLT', statement: 'If $X_i$ i.i.d., $E[X_i]=μ$, $Var=σ²<∞$, then $\\frac{\\bar X_n-μ}{σ/√n} \\xrightarrow{d} N(0,1)$. Also $\\sum X_i ≈ N(nμ, nσ²)$.' },
+      { t: 'ex', title: 'Polling margin', steps: [
+        'n=1000, p=0.5, σ=√(p(1-p)/n)=0.0158.',
+        '95% interval ≈ p ±1.96σ ≈ ±3.1% — the familiar ±3% for 1000 samples.',
+      ]},
+      { t: 'cs', items: [
+        { area: 'A/B testing', how: 'Difference of means approx normal by CLT, justifying z-test.' },
+      ]},
+    ],
+    practice: [
+      { id: 'clt-p1', q: '100 dice, sum S. Approx distribution?', type: 'short', diff: 'medium', answer: 'E=350, Var=100·35/12≈291.7, SD≈17.08, S≈N(350,291.7).', explain: 'Single die mean 3.5, var 35/12.' },
+    ],
+  },
+  {
+    id: 'queueing',
+    title: 'Queueing Theory',
+    domain: 'probability',
+    parent: 'markov-chains',
+    summary: 'Model waiting lines: arrivals λ, service μ, M/M/1 queue. Little’s Law L=λW, traffic intensity ρ=λ/μ, stability ρ<1.',
+    level: 'advanced',
+    csFields: ['computer-networks', 'operating-systems', 'cloud-computing'],
+    prerequisites: ['markov-chains', 'expectation'],
+    related: ['markov-chains', 'probability-axioms'],
+    content: [
+      { t: 'def', title: 'M/M/1', text: 'Poisson arrivals rate λ, exponential service rate μ, one server, infinite buffer, FIFO. Birth-death chain with birth λ, death μ. Stationary exists iff ρ=λ/μ<1. Then P(n in system)=(1-ρ)ρ^n, L=ρ/(1-ρ) average number, W=1/(μ-λ) average time in system (Little: L=λW).' },
+      { t: 'ex', title: 'Router', steps: [
+        'Packets arrive 800/s, service 1000/s, ρ=0.8, L=0.8/0.2=4 packets avg, W=1/(200)=5ms avg time.',
+        'If λ→μ, ρ→1, L→∞: congestion collapse.',
+      ]},
+      { t: 'cs', items: [
+        { area: 'OS', how: 'CPU run queue: processes arrive, scheduler serves. Queueing predicts wait time.' },
+        { area: 'Networks', how: 'Buffer sizing: need ρ<1 and enough buffer to keep loss low.' },
+      ]},
+    ],
+    practice: [
+      { id: 'queue-p1', q: 'M/M/1 λ=0.9, μ=1. Average number in system?', type: 'numeric', diff: 'easy', answer: '9', explain: 'ρ=0.9, L=0.9/0.1=9.' },
+    ],
+  },
+  {
+    id: 'variance-covariance-prob',
+    title: 'Variance and Covariance (Review)',
+    domain: 'probability',
+    parent: 'expectation',
+    summary: 'Alias for variance-covariance used by paths.',
+    level: 'core',
+    csFields: ['data-science'],
+    prerequisites: ['expectation'],
+    related: ['expectation'],
+    content: [
+      { t: 'p', text: 'Variance $Var(X)=E[(X-E[X])²]$, covariance $Cov(X,Y)=E[XY]-E[X]E[Y]$. Same as `variance-covariance`.' },
+    ],
+    practice: [],
+  },
+];
+
