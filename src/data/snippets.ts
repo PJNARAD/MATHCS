@@ -931,6 +931,154 @@ for (let i = 0; i < code.length; i++)
 console.log("minimum distance of {1011, 0100, 1110} =", min, "-> detects", min - 1, "errors");`,
     output: 'word 1011 distance to 1011 = 0 parity bit = 1\nword 1001 distance to 1011 = 1 parity bit = 0\nword 1111 distance to 1011 = 1 parity bit = 0\nminimum distance of {1011, 0100, 1110} = 2 -> detects 1 errors',
   },
+  {
+    id: 'union-find',
+    conceptId: 'union-find',
+    title: 'Union–find in fifteen lines',
+    blurb: 'Path compression plus union by size — the component bookkeeping that finishes Kruskal’s algorithm.',
+    code: `const parent = {}, size = {};
+const make = x => { parent[x] = x; size[x] = 1; };
+function find(x) {
+  while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+  return x;
+}
+function union(a, b) {
+  let ra = find(a), rb = find(b);
+  if (ra === rb) return false;
+  if (size[ra] < size[rb]) { const t = ra; ra = rb; rb = t; }
+  parent[rb] = ra; size[ra] += size[rb];
+  return true;
+}
+
+["A", "B", "C", "D", "E", "F"].forEach(make);
+const edges = [["A","B"],["C","D"],["B","C"],["A","C"],["E","F"]];
+for (const [u, v] of edges) {
+  const merged = union(u, v);
+  console.log("union(" + u + "," + v + ") -> " + (merged ? "accepted" : "rejected (same component)") + ", find(A) = " + find("A") + ", find(E) = " + find("E"));
+}
+const depth = x => { let hops = 0; while (parent[x] !== x) { x = parent[x]; hops++; } return hops; };
+console.log("D sits " + depth("D") + " hops below its root (D -> C -> A)");
+console.log("find(D) = " + find("D"));
+console.log("after that find, D sits " + depth("D") + " hop below its root (path compression)");
+console.log("components: " + [...new Set(["A","B","C","D","E","F"].map(find))].join(", "));`,
+    output: 'union(A,B) -> accepted, find(A) = A, find(E) = E\nunion(C,D) -> accepted, find(A) = A, find(E) = E\nunion(B,C) -> accepted, find(A) = A, find(E) = E\nunion(A,C) -> rejected (same component), find(A) = A, find(E) = E\nunion(E,F) -> accepted, find(A) = A, find(E) = E\nD sits 2 hops below its root (D -> C -> A)\nfind(D) = A\nafter that find, D sits 1 hop below its root (path compression)\ncomponents: A, E',
+  },
+  {
+    id: 'binary-search-steps',
+    conceptId: 'binary-search',
+    title: 'Twenty guesses for a million',
+    blurb: 'Counting comparisons shows the logarithm directly — then the same loop picks a shipping capacity.',
+    code: `function guessCount(n) {
+  let lo = 1, hi = n, steps = 0;
+  while (lo < hi) {
+    const mid = lo + Math.floor((hi - lo) / 2);
+    steps++;
+    hi = mid;
+  }
+  return steps;
+}
+
+for (const n of [10, 100, 1000, 1000000, 1000000000]) {
+  console.log("range 1.." + n + " -> " + guessCount(n) + " comparisons (ceil(log2 n) = " + Math.ceil(Math.log2(n)) + ")");
+}
+
+const weights = [3, 2, 2, 4, 1, 4];
+const daysFor = cap => {
+  let days = 1, load = 0;
+  for (const w of weights) {
+    if (load + w > cap) { days++; load = 0; }
+    load += w;
+  }
+  return days;
+};
+let lo = Math.max.apply(null, weights), hi = weights.reduce((a, b) => a + b, 0);
+while (lo < hi) {
+  const mid = lo + Math.floor((hi - lo) / 2);
+  if (daysFor(mid) <= 5) hi = mid; else lo = mid + 1;
+}
+const totalWeight = weights.reduce((a, b) => a + b, 0);
+console.log("minimum capacity for 5 days = " + lo + " (one day would need " + totalWeight + ")");`,
+    output: 'range 1..10 -> 4 comparisons (ceil(log2 n) = 4)\nrange 1..100 -> 7 comparisons (ceil(log2 n) = 7)\nrange 1..1000 -> 10 comparisons (ceil(log2 n) = 10)\nrange 1..1000000 -> 20 comparisons (ceil(log2 n) = 20)\nrange 1..1000000000 -> 30 comparisons (ceil(log2 n) = 30)\nminimum capacity for 5 days = 4 (one day would need 16)',
+  },
+  {
+    id: 'cosine-similarity',
+    conceptId: 'cosine-similarity',
+    title: 'Cosine similarity vs raw dot product',
+    blurb: 'Three toy documents show why direction matters and length does not.',
+    code: `const dot = (a, b) => a.reduce((s, x, i) => s + x * b[i], 0);
+const norm = a => Math.sqrt(dot(a, a));
+const cosine = (a, b) => dot(a, b) / (norm(a) * norm(b));
+
+const docs = {
+  "math math cs": [2, 1, 0],
+  "math cs cs": [1, 2, 0],
+  "pizza x4": [0, 0, 4],
+};
+const names = Object.keys(docs);
+for (let i = 0; i < names.length; i++) {
+  for (let j = i + 1; j < names.length; j++) {
+    const a = docs[names[i]], b = docs[names[j]];
+    console.log(names[i].padEnd(12) + " vs " + names[j].padEnd(12) + " dot = " + String(dot(a, b)).padStart(2) + "  cos = " + cosine(a, b).toFixed(2));
+  }
+}
+console.log("scale check: cos((3,4),(6,8)) = " + cosine([3, 4], [6, 8]).toFixed(2));`,
+    output: 'math math cs vs math cs cs   dot =  4  cos = 0.80\nmath math cs vs pizza x4     dot =  0  cos = 0.00\nmath cs cs   vs pizza x4     dot =  0  cos = 0.00\nscale check: cos((3,4),(6,8)) = 1.00',
+  },
+  {
+    id: 'edmonds-karp',
+    conceptId: 'maximum-flow',
+    title: 'Edmonds–Karp with a residual graph',
+    blurb: 'BFS augmenting paths, reverse edges that undo bad choices, and the min cut read off the residuals.',
+    code: `const capacity = { "s->a": 3, "a->t": 2, "s->b": 2, "b->t": 3, "a->b": 1 };
+const flow = {};
+const residual = () => {
+  const r = {};
+  for (const key of Object.keys(capacity)) {
+    const parts = key.split("->"), u = parts[0], v = parts[1];
+    r[u + "->" + v] = capacity[key] - (flow[key] || 0);
+    r[v + "->" + u] = flow[key] || 0;
+  }
+  return r;
+};
+const outgoing = (r, u) => Object.keys(r).filter(k => k.split("->")[0] === u && r[k] > 0);
+
+let total = 0, round = 0;
+while (true) {
+  const r = residual();
+  const parent = {}, seen = { s: true }, queue = ["s"];
+  while (queue.length && !seen.t) {
+    const u = queue.shift();
+    for (const k of outgoing(r, u)) {
+      const v = k.split("->")[1];
+      if (!seen[v]) { seen[v] = true; parent[v] = k; queue.push(v); }
+    }
+  }
+  if (!seen.t) break;
+  let v = "t", bottleneck = Infinity, path = [];
+  while (v !== "s") { const k = parent[v]; path.unshift(k); bottleneck = Math.min(bottleneck, r[k]); v = k.split("->")[0]; }
+  for (const k of path) {
+    const parts = k.split("->"), a = parts[0], b = parts[1];
+    if (capacity[a + "->" + b] !== undefined) flow[a + "->" + b] = (flow[a + "->" + b] || 0) + bottleneck;
+    else flow[b + "->" + a] = (flow[b + "->" + a] || 0) - bottleneck;
+  }
+  total += bottleneck;
+  round++;
+  console.log("round " + round + ": " + path.join(" + ") + "  bottleneck = " + bottleneck + "  flow = " + total);
+}
+
+const r = residual();
+const reachable = { s: true }, queue = ["s"];
+while (queue.length) {
+  const u = queue.shift();
+  for (const k of outgoing(r, u)) {
+    const v = k.split("->")[1];
+    if (!reachable[v]) { reachable[v] = true; queue.push(v); }
+  }
+}
+console.log("max flow = " + total);
+console.log("min cut: vertices reachable from s = {" + Object.keys(reachable).join(", ") + "}");`,
+    output: 'round 1: s->a + a->t  bottleneck = 2  flow = 2\nround 2: s->b + b->t  bottleneck = 2  flow = 4\nround 3: s->a + a->b + b->t  bottleneck = 1  flow = 5\nmax flow = 5\nmin cut: vertices reachable from s = {s}',
+  },
 ];
 
 export const snippetById = (id: string): Snippet | undefined => snippets.find((s) => s.id === id);

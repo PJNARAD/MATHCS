@@ -10,7 +10,7 @@ export const paths: LearningPath[] = [
       'The standard route for ML and AI: from algebra and functions, through vectors and matrices, to probability, derivatives, and gradient descent — the mathematics that actually trains models.',
     stages: [
       { title: 'Foundations', concepts: ['number-systems', 'function-basics', 'logarithms'] },
-      { title: 'Linear Algebra', concepts: ['vectors', 'matrix-basics', 'matrix-multiplication', 'linear-transformations', 'dot-product'] },
+      { title: 'Linear Algebra', concepts: ['vectors', 'matrix-basics', 'matrix-multiplication', 'linear-transformations', 'dot-product', 'cosine-similarity'] },
       { title: 'Probability & Statistics', concepts: ['probability-axioms', 'random-variables', 'expectation', 'variance-covariance', 'normal-distribution', 'linear-regression'] },
       { title: 'Calculus', concepts: ['limits', 'derivative', 'differentiation-rules', 'partial-derivatives', 'gradient'] },
       { title: 'Optimization', concepts: ['optimization-intro', 'convexity', 'gradient-descent', 'stochastic-gradient-descent', 'newtons-method'] },
@@ -28,8 +28,8 @@ export const paths: LearningPath[] = [
       { title: 'Logical Foundations', concepts: ['logic', 'truth-tables', 'proof-by-contradiction', 'mathematical-induction'] },
       { title: 'Structures', concepts: ['set-basics', 'function-basics', 'relations', 'graph-definition', 'trees'] },
       { title: 'Counting & Recursion', concepts: ['fundamental-counting', 'combinations', 'recurrence-relations', 'solving-recurrences', 'recursion-trees', 'dynamic-programming'] },
-      { title: 'Analysis', concepts: ['asymptotic-notation', 'asymptotic-properties', 'growth-rates'] },
-      { title: 'Graph Algorithms', concepts: ['bfs-dfs', 'dijkstra', 'minimum-spanning-trees', 'topological-sorting'] },
+      { title: 'Analysis', concepts: ['asymptotic-notation', 'asymptotic-properties', 'growth-rates', 'binary-search'] },
+      { title: 'Graph Algorithms', concepts: ['bfs-dfs', 'dijkstra', 'minimum-spanning-trees', 'kruskal-prims', 'union-find', 'matching', 'maximum-flow', 'topological-sorting'] },
     ],
   },
   {
@@ -58,7 +58,7 @@ export const paths: LearningPath[] = [
       { title: 'Describing Data', concepts: ['measures-of-center', 'measures-of-spread', 'correlation'] },
       { title: 'Probability Core', concepts: ['probability-axioms', 'conditional-probability', 'random-variables', 'expectation', 'variance-covariance', 'normal-distribution'] },
       { title: 'From Data to Models', concepts: ['linear-regression', 'maximum-likelihood', 'confidence-intervals', 'hypothesis-testing', 'bayesian-statistics'] },
-      { title: 'Linear Algebra for Data', concepts: ['vectors', 'matrix-basics', 'dot-product', 'eigenvalues-eigenvectors'] },
+      { title: 'Linear Algebra for Data', concepts: ['vectors', 'matrix-basics', 'dot-product', 'cosine-similarity', 'eigenvalues-eigenvectors'] },
       { title: 'Uncertainty & Inference', concepts: ['law-of-large-numbers', 'central-limit-theorem', 'markov-chains'] },
     ],
   },
@@ -84,7 +84,7 @@ export const paths: LearningPath[] = [
     description:
       'Vision = matrices (images) + geometry (cameras) + calculus (learning) + probability (uncertainty). This path threads all four.',
     stages: [
-      { title: 'Images as Linear Algebra', concepts: ['vectors', 'matrix-basics', 'matrix-multiplication', 'dot-product'] },
+      { title: 'Images as Linear Algebra', concepts: ['vectors', 'matrix-basics', 'matrix-multiplication', 'dot-product', 'cosine-similarity'] },
       { title: 'Camera Geometry', concepts: ['coordinate-geometry', 'unit-circle-trig', 'conic-sections', '3d-geometry', 'linear-transformations'] },
       { title: 'Learning Vision', concepts: ['derivative', 'partial-derivatives', 'gradient', 'gradient-descent'] },
       { title: 'Uncertainty in Perception', concepts: ['probability-axioms', 'conditional-probability', 'bayes-theorem', 'normal-distribution'] },
@@ -115,7 +115,7 @@ export const paths: LearningPath[] = [
     stages: [
       { title: 'Graph Structure', concepts: ['graph-definition', 'paths-walks-cycles', 'connectivity', 'trees'] },
       { title: 'Traversals & Shortest Paths', concepts: ['bfs-dfs', 'dijkstra', 'bellman-ford', 'floyd-warshall'] },
-      { title: 'Capacity & Flow', concepts: ['minimum-spanning-trees', 'network-flow'] },
+      { title: 'Capacity & Flow', concepts: ['minimum-spanning-trees', 'kruskal-prims', 'network-flow', 'maximum-flow', 'max-flow-min-cut'] },
       { title: 'Uncertainty', concepts: ['probability-axioms', 'markov-chains', 'queueing'] },
     ],
   },
@@ -131,7 +131,7 @@ export const paths: LearningPath[] = [
       { title: 'Counting', concepts: ['fundamental-counting', 'combinations', 'pigeonhole-principle', 'inclusion-exclusion'] },
       { title: 'Languages & Machines', concepts: ['formal-languages-basics', 'regular-languages', 'finite-automata', 'context-free-languages'] },
       { title: 'Computability', concepts: ['turing-machines', 'halting-problem', 'complexity-classes'] },
-      { title: 'Structures in Theory', concepts: ['graph-definition', 'boolean-algebra', 'groups'] },
+      { title: 'Structures in Theory', concepts: ['graph-definition', 'boolean-algebra', 'lattice-logic', 'groups'] },
     ],
   },
   {
@@ -143,7 +143,7 @@ export const paths: LearningPath[] = [
       'The general foundation path for software, systems, and architecture: logic, sets, functions, relations, induction, and Boolean algebra.',
     stages: [
       { title: 'Logic', concepts: ['logic', 'propositions', 'logical-operators', 'truth-tables', 'predicates', 'quantifiers', 'logical-equivalence'] },
-      { title: 'Structures', concepts: ['set-basics', 'set-operations', 'function-basics', 'injective-functions', 'surjective-functions', 'bijective-functions', 'relations', 'equivalence-relations'] },
+      { title: 'Structures', concepts: ['set-basics', 'set-operations', 'function-basics', 'injective-functions', 'surjective-functions', 'bijective-functions', 'relations', 'equivalence-relations', 'partial-orders', 'lattice-logic'] },
       { title: 'Reasoning', concepts: ['direct-proof', 'proof-by-contradiction', 'proof-by-contrapositive', 'mathematical-induction', 'conjectures-counterexamples'] },
       { title: 'Circuits', concepts: ['boolean-basics', 'de-morgans-laws', 'logic-gates', 'boolean-simplification'] },
     ],

@@ -14,6 +14,9 @@ const routes = [
   '/', '/fields', '/paths', '/books', '/playground',
   ...VIZ_CONCEPTS.map((id) => `/concept/${id}`),
   '/concept/rsa-cryptography', '/concept/graph-coloring', '/concept/markov-chains',
+  // Lessons added to close dangling references (see scripts/audit.ts).
+  '/concept/kruskal-prims', '/concept/union-find', '/concept/maximum-flow', '/concept/max-flow-min-cut',
+  '/concept/matching', '/concept/cosine-similarity', '/concept/lattice-logic', '/concept/binary-search',
   '/domain/number-theory', '/field/ml', '/path/ml-foundations',
 ];
 

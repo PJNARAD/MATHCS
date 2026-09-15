@@ -13,6 +13,8 @@
     "snippets:verify": "tsx scripts/snippets.ts verify",
     "snippets:write": "tsx scripts/snippets.ts write",
     "test:smoke": "tsx tests/smoke.tsx",
+    "audit": "tsx scripts/audit.ts",
+    "audit:json": "tsx scripts/audit.ts --json",
     "verify": "npm run typecheck && npm test && npm run snippets:verify && npm run test:smoke"
   },
   "dependencies": {

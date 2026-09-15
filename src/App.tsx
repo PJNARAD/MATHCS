@@ -1,7 +1,6 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { Search } from 'lucide-react';
-import { domains } from './data/domains';
 import { publishedDomainCount } from './data/coverage';
 import { ToastProvider } from './components/Toast';
 import { PreferencesMenu, PreferencesProvider, ThemeToggle, usePreferences } from './components/Preferences';
@@ -142,8 +141,8 @@ function AppShell() {
       <footer className="border-t border-line bg-surface">
         <div className="mx-auto max-w-wide px-4 py-6 flex flex-wrap items-center justify-between gap-3 text-xs text-ink3">
           <span>
-            MathCS — Mathematics for Computer Science. {publishedDomainCount} of {domains.length} domains live in
-            this build; the rest are on the roadmap.
+            MathCS — Mathematics for Computer Science. {publishedDomainCount} domains published: lessons, proofs,
+            runnable code and interactive labs.
           </span>
           <span className="font-mono">
             {new Date().getFullYear()} · interactive laboratory
