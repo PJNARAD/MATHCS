@@ -257,6 +257,7 @@ export const calculus: Concept[] = [
         'sin x ≈ x - x³/6 for small x, error ≤ |x|^5/120.',
         'e^0.1 ≈1+0.1+0.005=1.105, true 1.105170... error 0.00017.',
       ]},
+      { t: 'viz', id: 'taylor', props: { fn: 'sin', order: 3, x: 1.6 } },
       { t: 'cs', items: [
         { area: 'Optimization', how: 'Second-order Taylor: f(x+δ)≈f(x)+∇f·δ+½δ^T H δ — Newton’s method uses this.' },
         { area: 'Numerical', how: 'Library functions sin, exp computed via truncated Taylor / Chebyshev.' },

@@ -163,6 +163,7 @@ export const probability: Concept[] = [
         'Word “lottery” appears in 80% spam, 5% ham.',
         'Observe “lottery”: P(spam|word)=0.8·0.2/(0.8·0.2+0.05·0.8)=0.16/(0.16+0.04)=0.8 — posterior 80%.',
       ]},
+      { t: 'viz', id: 'bayes', props: { preset: 'rare' } },
       { t: 'cs', items: [
         { area: 'Naive Bayes', how: 'Text classification: P(class|doc) ∝ P(class)∏ P(word|class).' },
         { area: 'Bayesian networks', how: 'Large joint distributions factor via conditional independence, inference is repeated Bayes.' },
@@ -375,6 +376,7 @@ export const probability: Concept[] = [
         'n=1000, p=0.5, σ=√(p(1-p)/n)=0.0158.',
         '95% interval ≈ p ±1.96σ ≈ ±3.1% — the familiar ±3% for 1000 samples.',
       ]},
+      { t: 'viz', id: 'clt', props: { population: 'exponential', n: 5, samples: 3000, seed: 7 } },
       { t: 'cs', items: [
         { area: 'A/B testing', how: 'Difference of means approx normal by CLT, justifying z-test.' },
       ]},

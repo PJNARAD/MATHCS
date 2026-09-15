@@ -87,7 +87,7 @@ export const optimization: Concept[] = [
         'f(x)= (x-3)², ∇=2(x-3), start x0=0, η=0.1: x1=0-0.1·(-6)=0.6, x2=0.6-0.1·(-4.8)=1.08, ... →3.',
         'Optimal η=0.5 gives one-step convergence for this f: x1=0-0.5·(-6)=3.',
       ]},
-      { t: 'viz', id: 'prime-explorer', props: { defaultN: 10 } },
+            { t: 'viz', id: 'gradient-descent', props: { landscape: 'ravine', lr: 0.03, steps: 40 } },
       { t: 'cs', items: [
         { area: 'Training', how: 'Backprop computes ∇L, GD updates weights.' },
         { area: 'Hyperparameter', how: 'Learning rate most important hyperparameter; schedule (decay) helps.' },
