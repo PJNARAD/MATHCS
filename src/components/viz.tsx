@@ -16,6 +16,32 @@ import {
   getTaylorPreset, huffmanCodes, huffmanDecode, huffmanEncode, isPrefixFree, mapInfo,
   normalOverlay, sampleFn, taylorApprox, taylorError, taylorTerm, transformedUnitSquare, turnDegrees,
 } from '../lib/vizmath';
+import { usePreferences } from './Preferences';
+
+// SVG attributes cannot consume Tailwind classes, so they use the same
+// semantic channel tokens directly. Changing data-theme repaints every chart.
+const svgColor = (name: string) => `rgb(var(--color-${name}))`;
+const SVG_INK = svgColor('ink');
+const SVG_INK2 = svgColor('ink2');
+const SVG_INK3 = svgColor('ink3');
+const SVG_INK4 = svgColor('ink4');
+const SVG_LINE = svgColor('line');
+const SVG_LINE2 = svgColor('line2');
+const SVG_PAPER = svgColor('paper');
+const SVG_PAPER2 = svgColor('paper2');
+const SVG_PAPER3 = svgColor('paper3');
+const SVG_BLUE = svgColor('blue');
+const SVG_BLUED = svgColor('blued');
+const SVG_BLUEL = svgColor('bluel');
+const SVG_BLUEP = svgColor('bluep');
+const SVG_GOLD = svgColor('gold');
+const SVG_GOLD_BRIGHT = svgColor('gold-bright');
+const SVG_GOLDL = svgColor('goldl');
+const SVG_TERRA = svgColor('terracotta');
+const SVG_TERRAL = svgColor('terracottal');
+const SVG_MOSS = svgColor('moss');
+const SVG_MOSSL = svgColor('mossl');
+const SVG_ON = svgColor('on-accent');
 
 // ---------------------------------------------------------------------------
 // Shared shells
@@ -23,7 +49,7 @@ import {
 
 function VizShell({ title, children, right }: { title: string; children: React.ReactNode; right?: React.ReactNode }) {
   return (
-    <div className="my-5 border border-line bg-white shadow-card">
+    <div className="my-5 border border-line bg-surface shadow-card">
       <div className="flex items-center justify-between gap-2 border-b border-line bg-paper2/60 px-4 py-2">
         <div className="flex items-center gap-2">
           <span className="chip bg-bluel text-blue border-bluep">Interactive</span>
@@ -343,7 +369,7 @@ function TruthTableViz({ props }: { props?: Record<string, unknown> }) {
               </thead>
               <tbody>
                 {rows.map((r, i) => (
-                  <tr key={i} className={r.val ? 'bg-bluel/50' : 'bg-white'}>
+                  <tr key={i} className={r.val ? 'bg-bluel/50' : 'bg-surface'}>
                     {vars.map((v) => (
                       <td key={v} className={`border border-line px-2 py-1 text-center font-mono ${r.env[v] ? 'text-blue font-semibold' : 'text-ink4'}`}>
                         {r.env[v] ? 'T' : 'F'}
@@ -411,7 +437,7 @@ function VennViz({ props }: { props?: Record<string, unknown> }) {
   const op = VENN_OPS.find((o) => o.id === opId) ?? VENN_OPS[0];
   const active = new Set<Region>(op.regions);
 
-  const fill = (r: Region) => (active.has(r) ? 'rgba(43, 92, 138, 0.55)' : 'transparent');
+  const fill = (r: Region) => (active.has(r) ? `rgb(var(--color-blue) / 0.55)` : 'transparent');
 
   return (
     <VizShell
@@ -442,7 +468,7 @@ function VennViz({ props }: { props?: Record<string, unknown> }) {
                 <circle cx="150" cy="120" r="82" fill="black" />
               </mask>
             </defs>
-            <rect x="8" y="8" width="404" height="224" fill="none" stroke="#66718A" strokeWidth="1.5" />
+            <rect x="8" y="8" width="404" height="224" fill="none" stroke={SVG_INK3} strokeWidth="1.5" />
             {/* neither */}
             <path
               d="M 8 8 H 412 V 232 H 8 Z M 150 38 a 82 82 0 1 0 0.001 0 Z M 270 38 a 82 82 0 1 0 0.001 0 Z"
@@ -454,17 +480,17 @@ function VennViz({ props }: { props?: Record<string, unknown> }) {
             <circle cx="270" cy="120" r="82" mask="url(#venn-mask-b)" fill={fill('b')} />
             {/* both */}
             <circle cx="150" cy="120" r="82" clipPath="url(#venn-clip-b)" fill={fill('both')} />
-            <circle cx="150" cy="120" r="82" fill="none" stroke="#1B2A41" strokeWidth="1.5" />
-            <circle cx="270" cy="120" r="82" fill="none" stroke="#1B2A41" strokeWidth="1.5" />
-            <text x="105" y="120" fontSize="14" fontWeight="700" fill="#1B2A41">A</text>
-            <text x="318" y="120" fontSize="14" fontWeight="700" fill="#1B2A41">B</text>
+            <circle cx="150" cy="120" r="82" fill="none" stroke={SVG_INK} strokeWidth="1.5" />
+            <circle cx="270" cy="120" r="82" fill="none" stroke={SVG_INK} strokeWidth="1.5" />
+            <text x="105" y="120" fontSize="14" fontWeight="700" fill={SVG_INK}>A</text>
+            <text x="318" y="120" fontSize="14" fontWeight="700" fill={SVG_INK}>B</text>
             {VENN_U.map((x) => {
               const [cx, cy] = VENN_POS[x] ?? [210, 120];
               const on = active.has(vennRegionOf(x));
               return (
                 <g key={x}>
-                  <circle cx={cx} cy={cy} r="10" fill={on ? '#2B5C8A' : '#F4F1EA'} stroke={on ? '#2B5C8A' : '#8A93A5'} strokeWidth="1" />
-                  <text x={cx} y={cy + 3.5} textAnchor="middle" fontSize="10" fontWeight="600" fill={on ? '#fff' : '#66718A'}>
+                  <circle cx={cx} cy={cy} r="10" fill={on ? SVG_BLUE : SVG_PAPER2} stroke={on ? SVG_BLUE : SVG_INK4} strokeWidth="1" />
+                  <text x={cx} y={cy + 3.5} textAnchor="middle" fontSize="10" fontWeight="600" fill={on ? SVG_ON : SVG_INK3}>
                     {x}
                   </text>
                 </g>
@@ -567,13 +593,13 @@ function RecursionTreeViz({ props }: { props?: Record<string, unknown> }) {
                 return (
                   <g key={l.i}>
                     {l.i > 0 && xs.map((x, j) => (
-                      <line key={j} x1={230} y1={prevY!} x2={x} y2={y} stroke="#D5D1C4" strokeWidth="1" />
+                      <line key={j} x1={230} y1={prevY!} x2={x} y2={y} stroke={SVG_LINE2} strokeWidth="1" />
                     ))}
                     {xs.map((x, j) => (
                       <g key={j}>
-                        <circle cx={x} cy={y} r={12} fill={l.i === 0 ? '#2B5C8A' : l.i === levels.length - 1 ? '#3E7A4E' : '#EAF1F7'} stroke="#1B2A41" strokeWidth="1" />
+                        <circle cx={x} cy={y} r={12} fill={l.i === 0 ? SVG_BLUE : l.i === levels.length - 1 ? SVG_MOSS : SVG_BLUEL} stroke={SVG_INK} strokeWidth="1" />
                         {(x < 440) && (
-                          <text x={x} y={y + 3.5} textAnchor="middle" fontSize="9" fontWeight="600" fill={l.i === 0 ? '#fff' : '#1B2A41'}>
+                          <text x={x} y={y + 3.5} textAnchor="middle" fontSize="9" fontWeight="600" fill={l.i === 0 ? SVG_ON : SVG_INK}>
                             {l.size}
                           </text>
                         )}
@@ -736,7 +762,7 @@ const ALGOS_FOR: Record<string, { id: string; label: string }[]> = {
   ],
 };
 
-const COLOR_PALETTE = ['#2B5C8A', '#A9432E', '#3E7A4E', '#8A6D2F', '#66718A', '#1F4468'];
+const COLOR_PALETTE = [SVG_BLUE, SVG_TERRA, SVG_MOSS, SVG_GOLD, SVG_INK3, SVG_BLUED];
 
 function GraphEditorViz({ props }: { props?: Record<string, unknown> }) {
   const presetId = (props?.preset as string | undefined) ?? 'basic';
@@ -781,40 +807,40 @@ function GraphEditorViz({ props }: { props?: Record<string, unknown> }) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const s: any = step;
     if (s && 'visited' in s) {
-      if (s.visited.includes(id)) return { fill: '#2B5C8A', stroke: '#1F4468', text: '#fff' };
+      if (s.visited.includes(id)) return { fill: SVG_BLUE, stroke: SVG_BLUED, text: SVG_ON };
       const disc: string[] | undefined = s.discovered;
       if (disc && disc.includes(id)) {
-        return { fill: '#EAF1F7', stroke: '#2B5C8A', text: '#1B2A41' };
+        return { fill: SVG_BLUEL, stroke: SVG_BLUE, text: SVG_INK };
       }
     }
     if (s && algo === 'dfs' && 'stack' in s) {
       const stack = (s as { stack: string[] }).stack;
       if (stack.includes(id)) {
         return stack[stack.length - 1] === id
-          ? { fill: '#8A6D2F', stroke: '#8A6D2F', text: '#fff', ring: true }
-          : { fill: '#EAF1F7', stroke: '#8A6D2F', text: '#1B2A41' };
+          ? { fill: SVG_GOLD, stroke: SVG_GOLD, text: SVG_ON, ring: true }
+          : { fill: SVG_BLUEL, stroke: SVG_GOLD, text: SVG_INK };
       }
     }
     if (s && algo === 'coloring') {
       const c = (s as { colors: Record<string, number> }).colors[id];
-      if (c !== undefined) return { fill: COLOR_PALETTE[c % COLOR_PALETTE.length], stroke: '#1B2A41', text: '#fff' };
+      if (c !== undefined) return { fill: COLOR_PALETTE[c % COLOR_PALETTE.length], stroke: SVG_INK, text: SVG_ON };
     }
     if (s && algo === 'topo' && 'inDegree' in s) {
-      if ((s as { order: string[] }).order.includes(id)) return { fill: '#2B5C8A', stroke: '#1F4468', text: '#fff' };
+      if ((s as { order: string[] }).order.includes(id)) return { fill: SVG_BLUE, stroke: SVG_BLUED, text: SVG_ON };
     }
     if (s && algo === 'dijkstra' && (s as { select?: string }).select === id) {
-      return { fill: '#8A6D2F', stroke: '#8A6D2F', text: '#fff', ring: true };
+      return { fill: SVG_GOLD, stroke: SVG_GOLD, text: SVG_ON, ring: true };
     }
     if (s && algo === 'bfs' && (s as { visit?: string }).visit === id) {
-      return { fill: '#8A6D2F', stroke: '#8A6D2F', text: '#fff', ring: true };
+      return { fill: SVG_GOLD, stroke: SVG_GOLD, text: SVG_ON, ring: true };
     }
     if (s && algo === 'topo' && (s as { removed?: string }).removed === id) {
-      return { fill: '#8A6D2F', stroke: '#8A6D2F', text: '#fff', ring: true };
+      return { fill: SVG_GOLD, stroke: SVG_GOLD, text: SVG_ON, ring: true };
     }
     if (s && algo === 'coloring' && (s as { vertex?: string }).vertex === id) {
-      return { fill: '#F5EFDF', stroke: '#8A6D2F', text: '#1B2A41', ring: true };
+      return { fill: SVG_GOLDL, stroke: SVG_GOLD, text: SVG_INK, ring: true };
     }
-    return { fill: '#fff', stroke: '#8A93A5', text: '#1B2A41' };
+    return { fill: SVG_ON, stroke: SVG_INK4, text: SVG_INK };
   };
 
   // Edge visual state
@@ -825,25 +851,25 @@ function GraphEditorViz({ props }: { props?: Record<string, unknown> }) {
     if (s && algo === 'kruskal') {
       const mst = (s as { mstEdges: [string, string][] }).mstEdges ?? [];
       if (mst.some(([x, y]) => (x === a && y === b2) || (x === b2 && y === a))) {
-        return { stroke: '#3E7A4E', width: 3 };
+        return { stroke: SVG_MOSS, width: 3 };
       }
       if (isEdge((s as { edge?: [string, string] }).edge)) {
         return (s as { accept?: boolean }).accept
-          ? { stroke: '#3E7A4E', width: 3 }
-          : { stroke: '#A9432E', width: 3 };
+          ? { stroke: SVG_MOSS, width: 3 }
+          : { stroke: SVG_TERRA, width: 3 };
       }
-      return { stroke: '#D5D1C4', width: 1.5 };
+      return { stroke: SVG_LINE2, width: 1.5 };
     }
     if (s && algo === 'dijkstra') {
       const relax = (s as { relax?: { from: string; to: string; improved: boolean } }).relax;
       if (relax && ((relax.from === a && relax.to === b2) || (relax.from === b2 && relax.to === a))) {
-        return relax.improved ? { stroke: '#3E7A4E', width: 3 } : { stroke: '#A9432E', width: 2, dash: '4 3' };
+        return relax.improved ? { stroke: SVG_MOSS, width: 3 } : { stroke: SVG_TERRA, width: 2, dash: '4 3' };
       }
     }
     if (s && (algo === 'bfs' || algo === 'dfs')) {
-      if (isEdge((s as { edge?: [string, string] }).edge)) return { stroke: '#2B5C8A', width: 3 };
+      if (isEdge((s as { edge?: [string, string] }).edge)) return { stroke: SVG_BLUE, width: 3 };
     }
-    return { stroke: '#C9C6BA', width: 1.5 };
+    return { stroke: SVG_LINE2, width: 1.5 };
   };
 
   const nodeLabelExtra = (id: string): string | null => {
@@ -955,7 +981,7 @@ function GraphEditorViz({ props }: { props?: Record<string, unknown> }) {
         >
           <defs>
             <marker id="viz-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="#8A93A5" />
+              <path d="M 0 0 L 10 5 L 0 10 z" fill={SVG_INK4} />
             </marker>
           </defs>
           {graph.edges.map((e) => {
@@ -976,7 +1002,7 @@ function GraphEditorViz({ props }: { props?: Record<string, unknown> }) {
               <g key={`${e.a}-${e.b}`}>
                 <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={st.stroke} strokeWidth={st.width} strokeDasharray={st.dash} markerEnd={arrows ? 'url(#viz-arrow)' : undefined} />
                 {weighted && (
-                  <text x={(x1 + x2) / 2 + 6} y={(y1 + y2) / 2 - 6} fontSize="11" fontFamily="monospace" fill="#66718A">
+                  <text x={(x1 + x2) / 2 + 6} y={(y1 + y2) / 2 - 6} fontSize="11" fontFamily="monospace" fill={SVG_INK3}>
                     {e.w}
                   </text>
                 )}
@@ -993,7 +1019,7 @@ function GraphEditorViz({ props }: { props?: Record<string, unknown> }) {
                   {n.id}
                 </text>
                 {extra !== null && (
-                  <text x={n.x} y={n.y + 32} textAnchor="middle" fontSize="10" fontFamily="monospace" fill="#66718A" style={{ pointerEvents: 'none' }}>
+                  <text x={n.x} y={n.y + 32} textAnchor="middle" fontSize="10" fontFamily="monospace" fill={SVG_INK3} style={{ pointerEvents: 'none' }}>
                     {extra}
                   </text>
                 )}
@@ -1105,7 +1131,7 @@ function SieveViz({ props }: { props?: Record<string, unknown> }) {
           if (x === 1) {
             return <div key={x} className="h-8 border border-line bg-paper flex items-center justify-center text-xs font-mono text-ink4 line-through">1</div>;
           }
-          let cls = 'bg-white text-ink2 border-line';
+          let cls = 'bg-surface text-ink2 border-line';
           let strike = false;
           if (final && primes.has(x)) cls = 'bg-mossl text-moss border-moss';
           else if (crossedNow.has(x)) { cls = 'bg-terracottal text-terracotta border-terracotta'; strike = true; }
@@ -1158,7 +1184,7 @@ function EuclidViz({ props }: { props?: Record<string, unknown> }) {
                 ? 'border-gold bg-goldl/50'
                 : i === p.i
                   ? 'border-moss bg-mossl'
-                  : 'border-line bg-white'
+                  : 'border-line bg-surface'
             }`}
           >
             <InlineMath latex={`${s.a} = ${s.q} \\cdot ${s.b} + ${s.r}`} />
@@ -1246,14 +1272,14 @@ function ModularClockViz({ props }: { props?: Record<string, unknown> }) {
       <div className="mt-3 grid md:grid-cols-2 gap-4 items-center">
         <div className="grid-paper border border-line">
           <svg viewBox="0 0 200 200" className="w-full max-w-[260px] mx-auto">
-            <circle cx="100" cy="100" r="92" fill="none" stroke="#D5D1C4" strokeWidth="1.5" />
+            <circle cx="100" cy="100" r="92" fill="none" stroke={SVG_LINE2} strokeWidth="1.5" />
             {Array.from({ length: m }, (_, v) => {
               const [x, y] = pos(v);
               const [lx, ly] = [100 + 86 * Math.cos(-Math.PI / 2 + (v / m) * 2 * Math.PI), 100 + 86 * Math.sin(-Math.PI / 2 + (v / m) * 2 * Math.PI)];
               return (
                 <g key={v}>
-                  <line x1={100 + 92 * Math.cos(-Math.PI / 2 + (v / m) * 2 * Math.PI)} y1={100 + 92 * Math.sin(-Math.PI / 2 + (v / m) * 2 * Math.PI)} x2={x} y2={y} stroke="#8A93A5" strokeWidth="1" />
-                  <text x={lx} y={ly + 3.5} textAnchor="middle" fontSize="10" fontFamily="monospace" fill="#3D4C63">{v}</text>
+                  <line x1={100 + 92 * Math.cos(-Math.PI / 2 + (v / m) * 2 * Math.PI)} y1={100 + 92 * Math.sin(-Math.PI / 2 + (v / m) * 2 * Math.PI)} x2={x} y2={y} stroke={SVG_INK4} strokeWidth="1" />
+                  <text x={lx} y={ly + 3.5} textAnchor="middle" fontSize="10" fontFamily="monospace" fill={SVG_INK2}>{v}</text>
                 </g>
               );
             })}
@@ -1262,13 +1288,13 @@ function ModularClockViz({ props }: { props?: Record<string, unknown> }) {
               const last = i === Math.min(idx, trail.length - 1);
               if (i > 0) {
                 const [px, py] = pos(trail[i - 1]);
-                <line key={`l${i}`} x1={px} y1={py} x2={x} y2={y} stroke="#2B5C8A" strokeWidth="1.5" opacity="0.4" />
+                <line key={`l${i}`} x1={px} y1={py} x2={x} y2={y} stroke={SVG_BLUE} strokeWidth="1.5" opacity="0.4" />
               }
               return (
-                <circle key={i} cx={x} cy={y} r={last ? 9 : 6} fill={last ? '#8A6D2F' : '#2B5C8A'} opacity={last ? 1 : 0.55} />
+                <circle key={i} cx={x} cy={y} r={last ? 9 : 6} fill={last ? SVG_GOLD : SVG_BLUE} opacity={last ? 1 : 0.55} />
               );
             })}
-            <text x="100" y="104" textAnchor="middle" fontSize="20" fontWeight="700" fill="#1B2A41">
+            <text x="100" y="104" textAnchor="middle" fontSize="20" fontWeight="700" fill={SVG_INK}>
               {cur}
             </text>
           </svg>
@@ -1395,12 +1421,6 @@ function num(x: number, d = 3): string {
   return Object.is(v, -0) ? '0' : String(v);
 }
 
-const SVG_INK = '#1B2A41';
-const SVG_BLUE = '#2B5C8A';
-const SVG_GOLD = '#8A6D2F';
-const SVG_TERRA = '#A9432E';
-const SVG_MOSS = '#3E7A4E';
-
 function MatrixTransformViz({ props }: { props?: Record<string, unknown> }) {
   const initialPreset = (props?.preset as string | undefined) ?? 'shear';
   const [pid, setPid] = useState(initialPreset);
@@ -1466,9 +1486,9 @@ function MatrixTransformViz({ props }: { props?: Record<string, unknown> }) {
       </div>
 
       <div className="mt-3 grid gap-4 sm:grid-cols-[auto,1fr]">
-        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-[340px] max-w-full bg-white border border-line">
+        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-[340px] max-w-full bg-surface border border-line">
           {/* image of the integer grid */}
-          <g stroke="#DCE8F2" strokeWidth={1}>
+          <g stroke={SVG_BLUEP} strokeWidth={1}>
             {gridLines.map((g) => (
               <path key={`vx${g}`} d={line([g, -WORLD], [g, WORLD])} fill="none" />
             ))}
@@ -1477,7 +1497,7 @@ function MatrixTransformViz({ props }: { props?: Record<string, unknown> }) {
             ))}
           </g>
           {/* untransformed grid */}
-          <g stroke="#ECE8DE" strokeWidth={1}>
+          <g stroke={SVG_PAPER3} strokeWidth={1}>
             {gridLines.map((g) => (
               <path key={`ov${g}`} d={`M${P([g, -WORLD])[0]},0L${P([g, WORLD])[0]},${SIZE}`} fill="none" />
             ))}
@@ -1485,7 +1505,7 @@ function MatrixTransformViz({ props }: { props?: Record<string, unknown> }) {
               <path key={`oh${g}`} d={`M0,${P([-WORLD, g])[1]}L${SIZE},${P([WORLD, g])[1]}`} fill="none" />
             ))}
           </g>
-          <g stroke="#E4E1D7" strokeWidth={1}>
+          <g stroke={SVG_LINE} strokeWidth={1}>
             <line x1={0} y1={SIZE / 2} x2={SIZE} y2={SIZE / 2} />
             <line x1={SIZE / 2} y1={0} x2={SIZE / 2} y2={SIZE} />
           </g>
@@ -1493,7 +1513,8 @@ function MatrixTransformViz({ props }: { props?: Record<string, unknown> }) {
           {/* image of the unit square */}
           <polygon
             points={transformedUnitSquare(m).map((p) => P(p).join(',')).join(' ')}
-            fill="rgba(43,92,138,0.16)"
+            fill={SVG_BLUE}
+            opacity={0.16}
             stroke={SVG_BLUE}
             strokeWidth={1.4}
           />
@@ -1517,12 +1538,12 @@ function MatrixTransformViz({ props }: { props?: Record<string, unknown> }) {
 
           {/* the test vector and its image */}
           {arrow([0, 0], v, SVG_GOLD, 'v', 2.2)}
-          {arrow(v, w, '#C9A227', 'vw', 1.2)}
+          {arrow(v, w, SVG_GOLD_BRIGHT, 'vw', 1.2)}
           {arrow([0, 0], w, SVG_MOSS, 'w', 2.2)}
 
           {/* images of the basis vectors */}
           {arrow([0, 0], applyMap(m, [1, 0]), SVG_BLUE, 'e1', 2.6)}
-          {arrow([0, 0], applyMap(m, [0, 1]), '#1F4468', 'e2', 2.6)}
+          {arrow([0, 0], applyMap(m, [0, 1]), SVG_BLUED, 'e2', 2.6)}
         </svg>
 
         <div className="min-w-[15rem]">
@@ -1666,14 +1687,14 @@ function TaylorViz({ props }: { props?: Record<string, unknown> }) {
             {p.label}
           </button>
         ))}
-        <span className="chip bg-white">
+        <span className="chip bg-surface">
           <InlineMath latex={preset.latex} />
         </span>
       </div>
 
       <div className="mt-3 grid gap-4 sm:grid-cols-[auto,1fr]">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-[400px] max-w-full bg-white border border-line">
-          <g stroke="#ECE8DE" strokeWidth={1}>
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-[400px] max-w-full bg-surface border border-line">
+          <g stroke={SVG_PAPER3} strokeWidth={1}>
             {Array.from({ length: 10 }, (_, i) => {
               const x = xLo + ((xHi - xLo) * i) / 9;
               return <line key={`gx${i}`} x1={X(x)} y1={PAD} x2={X(x)} y2={H - PAD} />;
@@ -1683,8 +1704,8 @@ function TaylorViz({ props }: { props?: Record<string, unknown> }) {
               return <line key={`gy${i}`} x1={PAD} y1={Y(y)} x2={W - PAD} y2={Y(y)} />;
             })}
           </g>
-          {yLo <= 0 && yHi >= 0 && <line x1={PAD} y1={Y(0)} x2={W - PAD} y2={Y(0)} stroke="#D5D1C4" />}
-          {xLo <= 0 && xHi >= 0 && <line x1={X(0)} y1={PAD} x2={X(0)} y2={H - PAD} stroke="#D5D1C4" />}
+          {yLo <= 0 && yHi >= 0 && <line x1={PAD} y1={Y(0)} x2={W - PAD} y2={Y(0)} stroke={SVG_LINE2} />}
+          {xLo <= 0 && xHi >= 0 && <line x1={X(0)} y1={PAD} x2={X(0)} y2={H - PAD} stroke={SVG_LINE2} />}
 
           <path d={polyline(fPts)} fill="none" stroke={SVG_INK} strokeWidth={2} />
           <path d={polyline(pPts)} fill="none" stroke={SVG_BLUE} strokeWidth={2} strokeDasharray="6 3" />
@@ -1697,7 +1718,7 @@ function TaylorViz({ props }: { props?: Record<string, unknown> }) {
           <text x={PAD} y={16} fontSize={11} fill={SVG_INK} fontFamily="ui-monospace, monospace">
             f(x) solid · P{order}(x) dashed
           </text>
-          <text x={W - PAD} y={H - 8} fontSize={11} fill="#66718A" textAnchor="end" fontFamily="ui-monospace, monospace">
+          <text x={W - PAD} y={H - 8} fontSize={11} fill={SVG_INK3} textAnchor="end" fontFamily="ui-monospace, monospace">
             x ∈ [{num(xLo, 2)}, {num(xHi, 2)}]
           </text>
         </svg>
@@ -1827,15 +1848,15 @@ function BayesViz({ props }: { props?: Record<string, unknown> }) {
 
       <div className="mt-3 grid gap-4 sm:grid-cols-[auto,1fr]">
         <div>
-          <svg viewBox={`0 0 ${W} ${H}`} className="w-[400px] max-w-full bg-white border border-line">
-            {block(0, 0, tpW, posH, '#E7F0E9', SVG_MOSS, 'TRUE POS', counts.tp, 'tp')}
-            {block(tpW, 0, W - tpW, posH, '#F7E9E5', SVG_TERRA, 'FALSE POS', counts.fp, 'fp')}
-            {block(0, posH, W, negH, '#F5EFDF', SVG_GOLD, 'FALSE NEG', counts.fn, 'fn')}
+          <svg viewBox={`0 0 ${W} ${H}`} className="w-[400px] max-w-full bg-surface border border-line">
+            {block(0, 0, tpW, posH, SVG_MOSSL, SVG_MOSS, 'TRUE POS', counts.tp, 'tp')}
+            {block(tpW, 0, W - tpW, posH, SVG_TERRAL, SVG_TERRA, 'FALSE POS', counts.fp, 'fp')}
+            {block(0, posH, W, negH, SVG_GOLDL, SVG_GOLD, 'FALSE NEG', counts.fn, 'fn')}
             <text
               x={W - 4}
               y={H - 6}
               fontSize={10}
-              fill="#66718A"
+              fill={SVG_INK3}
               textAnchor="end"
               fontFamily="ui-monospace, monospace"
             >
@@ -1951,7 +1972,7 @@ function CltViz({ props }: { props?: Record<string, unknown> }) {
     const max = Math.max(1, ...popShape.out);
     const x = PAD + i * ((W - 2 * PAD) / popShape.bins);
     const h = (c / max) * 46;
-    return <rect key={i} x={x} y={H - 8 - h} width={(W - 2 * PAD) / popShape.bins - 1} height={h} fill="#8A93A5" />;
+    return <rect key={i} x={x} y={H - 8 - h} width={(W - 2 * PAD) / popShape.bins - 1} height={h} fill={SVG_INK4} />;
   });
 
   const ratio = run.sdOfMeans / run.theoreticalSe;
@@ -1991,21 +2012,21 @@ function CltViz({ props }: { props?: Record<string, unknown> }) {
         <span className="text-[11px] text-ink3">population shape: {pop.shape}</span>
       </div>
 
-      <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-[400px] max-w-full bg-white border border-line">
+      <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-[400px] max-w-full bg-surface border border-line">
         {run.hist.map((b, i) => {
           const y = Yc(b.count);
-          return <rect key={i} x={PAD + i * bw + 0.5} y={y} width={bw - 1} height={H - PAD - y} fill="#DCE8F2" stroke={SVG_BLUE} strokeWidth={0.6} />;
+          return <rect key={i} x={PAD + i * bw + 0.5} y={y} width={bw - 1} height={H - PAD - y} fill={SVG_BLUEP} stroke={SVG_BLUE} strokeWidth={0.6} />;
         })}
         <path d={overlayPath} fill="none" stroke={SVG_TERRA} strokeWidth={2} />
-        <line x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} stroke="#D5D1C4" />
+        <line x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} stroke={SVG_LINE2} />
         <text x={PAD} y={14} fontSize={11} fill={SVG_INK} fontFamily="ui-monospace, monospace">
           {samples} sample means (bars) vs N(μ, σ/√n) (red)
         </text>
-        <text x={PAD} y={H - 16} fontSize={10} fill="#66718A" fontFamily="ui-monospace, monospace">
+        <text x={PAD} y={H - 16} fontSize={10} fill={SVG_INK3} fontFamily="ui-monospace, monospace">
           population {pop.label}
         </text>
         {shapeBars}
-        <text x={W - PAD} y={H - 16} fontSize={10} fill="#66718A" textAnchor="end" fontFamily="ui-monospace, monospace">
+        <text x={W - PAD} y={H - 16} fontSize={10} fill={SVG_INK3} textAnchor="end" fontFamily="ui-monospace, monospace">
           shades = population draws
         </text>
       </svg>
@@ -2033,14 +2054,25 @@ function CltViz({ props }: { props?: Record<string, unknown> }) {
 // 14. Gradient descent
 // ---------------------------------------------------------------------------
 
-function lossColor(t: number): string {
-  const stops: [number, number, number][] = [
+export function lossColor(t: number, theme: 'light' | 'dark' = 'light'): string {
+  const lightStops: [number, number, number][] = [
     [251, 250, 247],
     [220, 232, 242],
     [120, 165, 205],
     [43, 92, 138],
     [27, 42, 65],
   ];
+  // The light ramp becomes a low-contrast blue smear on dark surfaces. The
+  // dark ramp reverses the luminance progression so both low and high losses
+  // remain legible against the chart background.
+  const darkStops: [number, number, number][] = [
+    [31, 42, 59],
+    [54, 90, 120],
+    [91, 143, 190],
+    [169, 208, 241],
+    [242, 244, 247],
+  ];
+  const stops = theme === 'dark' ? darkStops : lightStops;
   const clamped = Math.max(0, Math.min(1, t));
   const scaled = clamped * (stops.length - 1);
   const i = Math.min(stops.length - 2, Math.floor(scaled));
@@ -2050,6 +2082,7 @@ function lossColor(t: number): string {
 }
 
 function GradientDescentViz({ props }: { props?: Record<string, unknown> }) {
+  const { resolvedTheme } = usePreferences();
   const [lid, setLid] = useState((props?.landscape as string | undefined) ?? 'ravine');
   const [lr, setLr] = useState((props?.lr as number | undefined) ?? 0.03);
   const [steps, setSteps] = useState((props?.steps as number | undefined) ?? 40);
@@ -2092,11 +2125,11 @@ function GradientDescentViz({ props }: { props?: Record<string, unknown> }) {
           y={SIZE - (j + 1) * size}
           width={size + 0.6}
           height={size + 0.6}
-          fill={lossColor(1 - Math.max(0, Math.min(1, t)))}
+          fill={lossColor(1 - Math.max(0, Math.min(1, t)), resolvedTheme)}
         />
       );
     });
-  }, [landscape, d]);
+  }, [landscape, d, resolvedTheme]);
 
   const pathPts = run.path.slice(0, player.i + 1).map((s) => P([s.x, s.y]));
   const dPath = pathPts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(2)},${p[1].toFixed(2)}`).join('');
@@ -2129,15 +2162,15 @@ function GradientDescentViz({ props }: { props?: Record<string, unknown> }) {
       <div className="mt-3 grid gap-4 sm:grid-cols-[auto,1fr]">
         <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-[320px] max-w-full border border-line">
           {cells}
-          <path d={dPath} fill="none" stroke="#F5EFDF" strokeWidth={3.4} strokeLinejoin="round" strokeLinecap="round" />
+          <path d={dPath} fill="none" stroke={SVG_GOLDL} strokeWidth={3.4} strokeLinejoin="round" strokeLinecap="round" />
           <path d={dPath} fill="none" stroke={SVG_TERRA} strokeWidth={1.6} strokeLinejoin="round" strokeLinecap="round" />
           {run.path.slice(0, player.i + 1).map((s, i) => (
-            <circle key={i} cx={P([s.x, s.y])[0]} cy={P([s.x, s.y])[1]} r={i % 5 === 0 ? 2.4 : 1.4} fill="#F7E9E5" stroke={SVG_TERRA} strokeWidth={0.8} />
+            <circle key={i} cx={P([s.x, s.y])[0]} cy={P([s.x, s.y])[1]} r={i % 5 === 0 ? 2.4 : 1.4} fill={SVG_TERRAL} stroke={SVG_TERRA} strokeWidth={0.8} />
           ))}
           <circle cx={minPx[0]} cy={minPx[1]} r={4} fill="none" stroke={SVG_MOSS} strokeWidth={2} />
           <circle cx={cpx[0]} cy={cpx[1]} r={5} fill={SVG_INK} />
-          <line x1={cpx[0]} y1={cpx[1]} x2={gradTip[0]} y2={gradTip[1]} stroke="#C9A227" strokeWidth={2.4} strokeLinecap="round" />
-          <text x={8} y={16} fontSize={11} fill="#FBFAF7" fontFamily="ui-monospace, monospace">
+          <line x1={cpx[0]} y1={cpx[1]} x2={gradTip[0]} y2={gradTip[1]} stroke={SVG_GOLD_BRIGHT} strokeWidth={2.4} strokeLinecap="round" />
+          <text x={8} y={16} fontSize={11} fill={SVG_PAPER} fontFamily="ui-monospace, monospace">
             {landscape.latex} · step {player.i}/{Math.max(0, run.path.length - 1)}
           </text>
         </svg>
@@ -2186,7 +2219,7 @@ function GradientDescentViz({ props }: { props?: Record<string, unknown> }) {
                 return run.path.map((s, i) => {
                   const barW = 100 / Math.max(1, run.path.length);
                   const h = (losses[i] / hi) * 38;
-                  return <rect key={i} x={i * barW} y={40 - h} width={Math.max(0.4, barW - 0.2)} height={h} fill={i <= player.i ? SVG_BLUE : '#D5D1C4'} />;
+                  return <rect key={i} x={i * barW} y={40 - h} width={Math.max(0.4, barW - 0.2)} height={h} fill={i <= player.i ? SVG_BLUE : SVG_LINE2} />;
                 });
               })()}
             </svg>
@@ -2326,11 +2359,11 @@ function HuffmanViz({ props }: { props?: Record<string, unknown> }) {
       <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr),auto]">
         <div>
           <div className="overflow-x-auto slim-scroll">
-            <svg viewBox={`0 0 ${treeW} ${Math.max(90, treeH)}`} className="min-w-[320px] w-full max-w-[640px] bg-white border border-line">
+            <svg viewBox={`0 0 ${treeW} ${Math.max(90, treeH)}`} className="min-w-[320px] w-full max-w-[640px] bg-surface border border-line">
               {layout &&
                 layout.links.map((l, i) => (
                   <g key={i}>
-                    <line x1={TX(l.x1)} y1={TY(l.y1)} x2={TX(l.x2)} y2={TY(l.y2)} stroke="#D5D1C4" strokeWidth={1.4} />
+                    <line x1={TX(l.x1)} y1={TY(l.y1)} x2={TX(l.x2)} y2={TY(l.y2)} stroke={SVG_LINE2} strokeWidth={1.4} />
                     <text
                       x={(TX(l.x1) + TX(l.x2)) / 2 + (l.bit === '0' ? -9 : 9)}
                       y={(TY(l.y1) + TY(l.y2)) / 2}
@@ -2346,7 +2379,7 @@ function HuffmanViz({ props }: { props?: Record<string, unknown> }) {
                 [...layout.pos.entries()].map(([n, p], i) =>
                   n.symbol !== undefined ? (
                     <g key={i}>
-                      <rect x={TX(p.x) - 17} y={TY(p.y) - 12} width={34} height={24} fill="#EAF1F7" stroke={SVG_BLUE} />
+                      <rect x={TX(p.x) - 17} y={TY(p.y) - 12} width={34} height={24} fill={SVG_BLUEL} stroke={SVG_BLUE} />
                       <text x={TX(p.x)} y={TY(p.y) + 4} fontSize={12} textAnchor="middle" fill={SVG_INK} fontFamily="ui-monospace, monospace" fontWeight={600}>
                         {n.symbol}
                       </text>
@@ -2356,8 +2389,8 @@ function HuffmanViz({ props }: { props?: Record<string, unknown> }) {
                     </g>
                   ) : (
                     <g key={i}>
-                      <circle cx={TX(p.x)} cy={TY(p.y)} r={4.5} fill="#F4F1EA" stroke="#8A93A5" />
-                      <text x={TX(p.x)} y={TY(p.y) - 10} fontSize={9} textAnchor="middle" fill="#66718A" fontFamily="ui-monospace, monospace">
+                      <circle cx={TX(p.x)} cy={TY(p.y)} r={4.5} fill={SVG_PAPER2} stroke={SVG_INK4} />
+                      <text x={TX(p.x)} y={TY(p.y) - 10} fontSize={9} textAnchor="middle" fill={SVG_INK3} fontFamily="ui-monospace, monospace">
                         {num(n.p, 2)}
                       </text>
                     </g>

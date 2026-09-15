@@ -100,7 +100,7 @@ export function PlaygroundPage() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
-          <div className="mt-3 max-h-[34rem] overflow-y-auto slim-scroll border border-line bg-white">
+          <div className="mt-3 max-h-[34rem] overflow-y-auto slim-scroll border border-line bg-surface">
             {grouped.map(([domain, list]) => (
               <div key={domain}>
                 <div className="sticky top-0 border-b border-line bg-paper2/90 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-ink3 backdrop-blur">
@@ -161,7 +161,7 @@ export function PlaygroundPage() {
             </div>
           </div>
 
-          <div className="mt-3 border border-line bg-white">
+          <div className="mt-3 border border-line bg-surface">
             <div className="flex items-center justify-between gap-2 border-b border-line bg-paper2/60 px-3 py-1.5">
               <span className="flex items-center gap-1.5 text-xs font-medium text-ink2">
                 <Terminal size={13} /> JavaScript
@@ -171,7 +171,7 @@ export function PlaygroundPage() {
               </span>
             </div>
             <textarea
-              className="h-72 w-full resize-y bg-white px-3 py-2 font-mono text-[12px] leading-relaxed text-ink focus:outline-none"
+              className="h-72 w-full resize-y bg-surface px-3 py-2 font-mono text-[12px] leading-relaxed text-ink focus:outline-none"
               spellCheck={false}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -180,7 +180,7 @@ export function PlaygroundPage() {
           </div>
 
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div className="border border-line bg-white">
+            <div className="border border-line bg-surface">
               <div className="flex items-center justify-between gap-2 border-b border-line bg-paper2/60 px-3 py-1.5">
                 <span className="text-xs font-medium text-ink2">Verified output</span>
                 <span className="chip border-moss/40 bg-mossl text-moss">executed in CI</span>
@@ -190,7 +190,7 @@ export function PlaygroundPage() {
               </pre>
             </div>
 
-            <div className="border border-line bg-white">
+            <div className="border border-line bg-surface">
               <div className="flex items-center justify-between gap-2 border-b border-line bg-paper2/60 px-3 py-1.5">
                 <span className="text-xs font-medium text-ink2">Your run</span>
                 {result && (

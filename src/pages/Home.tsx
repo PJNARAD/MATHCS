@@ -5,16 +5,25 @@ import { domains } from '../data/domains';
 import { fields } from '../data/fields';
 import { paths } from '../data/paths';
 import { books } from '../data/books';
-import { allConcepts, domainsWithContent, totalConcepts } from '../lib/concepts';
+import { allConcepts, domainsWithContent, getConcept, totalConcepts } from '../lib/concepts';
 import { Icon } from '../components/ui';
+import { useStore } from '../lib/store';
 
 export function HomePage() {
   const practiceCount = allConcepts.reduce((s, c) => s + c.practice.length, 0);
+  const { state } = useStore();
+  const recentConcept = state.recent
+    .map((entry) => getConcept(entry.id))
+    .find((concept): concept is NonNullable<typeof concept> => Boolean(concept));
+  const savedConcept = state.bookmarks
+    .map((conceptId) => getConcept(conceptId))
+    .find((concept): concept is NonNullable<typeof concept> => Boolean(concept));
+  const resume = recentConcept ?? savedConcept;
 
   return (
     <div>
       {/* Hero */}
-      <section className="border-b border-line bg-white">
+      <section className="border-b border-line bg-surface">
         <div className="mx-auto max-w-wide px-4 py-14 md:py-20">
           <div className="max-w-2xl">
             <div className="chip bg-bluel text-blue border-bluep mb-4">
@@ -46,11 +55,32 @@ export function HomePage() {
         </div>
       </section>
 
+      {/* Resume */}
+      <section className="border-b border-line bg-paper2/40">
+        <div className="mx-auto max-w-wide px-4 py-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tightest text-ink font-serif">Pick up where you left off</h2>
+              <p className="mt-1 text-sm text-ink3">
+                {resume ? 'Your latest lesson is ready when you are.' : 'Open a lesson and your progress will appear here next time.'}
+              </p>
+            </div>
+            {resume ? (
+              <Link to={`/concept/${resume.id}`} className="btn-secondary">
+                {resume.title} <ArrowRight size={14} />
+              </Link>
+            ) : (
+              <Link to="/domain/discrete" className="btn-secondary">Start a lesson <ArrowRight size={14} /></Link>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* Domains */}
       <section className="mx-auto max-w-wide px-4 py-12">
         <h2 className="text-2xl font-semibold tracking-tightest text-ink font-serif">Domains</h2>
         <p className="mt-1 text-sm text-ink3">
-          Five domains are fully built; the rest are on the roadmap.
+          {domainsWithContent.size} of {domains.length} domains have published lessons; the rest are on the roadmap.
         </p>
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {domains.map((d) => {
@@ -72,7 +102,7 @@ export function HomePage() {
                     <div className="mt-0.5 text-xs text-ink3 leading-relaxed">{d.tagline}</div>
                     <div className="mt-2">
                       {live ? (
-                        <span className="chip bg-mossl text-moss border-[#cfe0d4]">content ready</span>
+                        <span className="chip bg-mossl text-moss border-mossline">content ready</span>
                       ) : (
                         <span className="chip">coming soon</span>
                       )}
@@ -86,7 +116,7 @@ export function HomePage() {
       </section>
 
       {/* Fields */}
-      <section className="border-y border-line bg-white">
+      <section className="border-y border-line bg-surface">
         <div className="mx-auto max-w-wide px-4 py-12">
           <div className="flex items-baseline justify-between gap-4">
             <div>
@@ -147,7 +177,7 @@ export function HomePage() {
       </section>
 
       {/* Books */}
-      <section className="border-t border-line bg-white">
+      <section className="border-t border-line bg-surface">
         <div className="mx-auto max-w-wide px-4 py-12 flex items-center justify-between gap-6 flex-wrap">
           <div>
             <h2 className="text-2xl font-semibold tracking-tightest text-ink font-serif">Recommended books</h2>

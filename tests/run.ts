@@ -3,6 +3,7 @@ import { parseExpr, sampleFunction } from '../src/lib/expression';
 import { gcd, egcd, modPow, modInverse, isPrime, factorize, phi, rsaSetup, euclidSteps } from '../src/lib/numbertheory';
 import { bfsSteps, dijkstraSteps, kruskalSteps, topoSteps, coloringSteps, components, dfsSteps } from '../src/lib/graph';
 import type { Graph } from '../src/lib/graph';
+import type { Block } from '../src/data/types';
 import { eigen2, det2, inv2, rref, solveLinear, leastSquares, mat2Mul } from '../src/lib/linalg';
 import { mean, std, binom, normalCdf2, correlation, linreg, entropy, mulberry32 } from '../src/lib/stat';
 import { readFileSync, readdirSync } from 'node:fs';
@@ -14,6 +15,13 @@ import { books } from '../src/data/books';
 import { snippetById, snippets, snippetsForConcept } from '../src/data/snippets';
 import { compareOutput, runSnippet } from '../src/lib/runner';
 import { DEFAULT_PROGRESS, LEGACY_KEY, RECENT_LIMIT, STORAGE_KEY, loadProgress, migrateProgress } from '../src/lib/store';
+import {
+  DEFAULT_READER_PREFERENCES, READER_FONT_SIZES, READER_WIDTHS,
+  nextThemePreference, parseReaderPreferences, parseThemePreference, readerCssVariables,
+  resolveTheme, toggledThemePreference,
+} from '../src/lib/preferences';
+import { buildOutline, readingTimeLabel, readingTimeMinutes, wordCount } from '../src/lib/reading';
+import { lossColor } from '../src/components/viz';
 import { buildSearchDocs, fuzzyScore, scoreDoc, searchDocs } from '../src/lib/search';
 import {
   TAYLOR_PRESETS, cosCoeffs, expCoeffs, sinCoeffs, getTaylorPreset, polyEval, sampleFn, taylorApprox, taylorError, taylorTerm,
@@ -450,6 +458,57 @@ console.log('playground snippets');
   ok('snippetsForConcept finds the euclid snippet', snippetsForConcept('euclidean-algorithm').some((s) => s.id === 'euclid-gcd'));
   ok('snippetsForConcept is empty for a concept with no snippet', snippetsForConcept('no-such-concept').length === 0);
   ok('snippetById round-trips', snippetById(snippets[0].id)?.id === snippets[0].id);
+}
+
+
+console.log('bundle D preference and reading helpers');
+{
+  ok('system resolves to light when the OS is light', resolveTheme('system', false) === 'light');
+  ok('system resolves to dark when the OS is dark', resolveTheme('system', true) === 'dark');
+  ok('explicit theme wins over the OS', resolveTheme('light', true) === 'light' && resolveTheme('dark', false) === 'dark');
+  ok('theme parser rejects corrupt storage', parseThemePreference('sepia') === 'system');
+  ok('theme cycle is light → dark → system → light', nextThemePreference('light') === 'dark' && nextThemePreference('dark') === 'system' && nextThemePreference('system') === 'light');
+  ok('two-state toggle follows the resolved theme', toggledThemePreference('light') === 'dark' && toggledThemePreference('dark') === 'light');
+
+  const blocks: Block[] = [
+    { t: 'p', text: 'A short introduction with five words.' },
+    { t: 'h', text: 'The main idea' },
+    { t: 'def', title: 'A definition', text: 'A useful definition.' },
+    { t: 'props', title: 'Important facts', items: [{ title: 'First', text: 'A fact.' }] },
+    { t: 'formula', name: 'The formula', latex: 'a+b', note: 'Add the terms.' },
+    { t: 'props', title: 'Important facts', items: [{ title: 'Second', text: 'Another fact.' }] },
+    { t: 'viz', id: 'truth-table' },
+  ];
+  const outline = buildOutline(blocks);
+  ok('outline includes authored headings and labelled cards', outline.length === 5);
+  ok('outline includes properties cards, not just h blocks', outline.some((entry) => entry.label.startsWith('Properties')));
+  ok('duplicate section labels receive stable unique anchors', new Set(outline.map((entry) => entry.id)).size === outline.length && outline[4].id.endsWith('-2'));
+  ok('outline keeps source block indexes for anchors', outline.map((entry) => entry.index).join(',') === '1,2,3,4,5');
+  ok('word count ignores interactive blocks', wordCount(blocks) > 10 && readingTimeMinutes(blocks, 10) === Math.ceil(wordCount(blocks) / 10));
+  ok('reading time is always at least one minute', readingTimeMinutes([]) === 1 && readingTimeLabel(blocks).includes('min read'));
+  ok('reader preferences reject malformed values', JSON.stringify(parseReaderPreferences({ fontSize: 'huge', width: 'infinite' })) === JSON.stringify(DEFAULT_READER_PREFERENCES));
+  const vars = readerCssVariables({ fontSize: 'xl', width: 'wide' });
+  ok('reader controls resolve to the documented CSS variables', vars['--reader-font-size'] === READER_FONT_SIZES.xl && vars['--reader-width'] === READER_WIDTHS.wide);
+}
+
+console.log('bundle D token and delivery guards');
+{
+  const css = readFileSync('src/index.css', 'utf8');
+  const tailwind = readFileSync('tailwind.config.js', 'utf8');
+  const app = readFileSync('src/App.tsx', 'utf8');
+  const index = readFileSync('index.html', 'utf8');
+  const vizSrc = readFileSync('src/components/viz.tsx', 'utf8');
+  const sw = readFileSync('public/sw.js', 'utf8');
+  const manifest = readFileSync('public/manifest.webmanifest', 'utf8');
+  ok('light and dark palettes define the core semantic tokens', ['--color-paper', '--color-surface', '--color-ink', '--color-line'].every((token) => css.includes(token)) && css.includes("[data-theme='dark']"));
+  ok('Tailwind colors consume CSS variables instead of fixed hex values', tailwind.includes('rgb(var(--color-paper)') && !/paper:\s*['"]#/.test(tailwind));
+  ok('the shell has route-level lazy imports and a Suspense boundary', app.includes('lazy(() => import') && app.includes('<Suspense fallback'));
+  ok('the no-flash script runs before the app module', index.indexOf('mathcs-theme') < index.indexOf('/src/main.tsx'));
+  ok('visualization hex literals were replaced by semantic SVG tokens', !/#[0-9A-Fa-f]{3,8}/.test(vizSrc) && vizSrc.includes('svgColor'));
+  ok('gradient descent exposes a distinct dark heatmap ramp', lossColor(0, 'light') !== lossColor(0, 'dark') && lossColor(1, 'light') !== lossColor(1, 'dark'));
+  ok('manifest advertises maskable icons', manifest.includes('purpose') && manifest.includes('maskable') && manifest.includes('icon-512.png'));
+  ok('service worker caches the shell and serves deep links offline', sw.includes("event.request.mode === 'navigate'") && sw.includes('caches.match(SHELL)') && sw.includes('staleWhileRevalidate'));
+  ok('production-only service-worker registration is guarded', readFileSync('src/main.tsx', 'utf8').includes('import.meta.env.PROD'));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

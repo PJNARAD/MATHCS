@@ -2,6 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * The palette is intentionally expressed as RGB channels. Tailwind utilities
+ * consume these variables, so one attribute switch changes every semantic
+ * surface, border, and text colour without dark: variants in components.
+ */
+:root,
+[data-theme='light'] {
+  color-scheme: light;
+  --color-paper: 251 250 247;
+  --color-paper2: 244 241 234;
+  --color-paper3: 236 232 222;
+  --color-surface: 255 255 255;
+  --color-ink: 27 42 65;
+  --color-ink2: 61 76 99;
+  --color-ink3: 102 113 138;
+  --color-ink4: 138 147 165;
+  --color-line: 228 225 215;
+  --color-line2: 213 209 196;
+  --color-blue: 43 92 138;
+  --color-blued: 31 68 104;
+  --color-bluel: 234 241 247;
+  --color-bluep: 220 232 242;
+  --color-gold: 138 109 47;
+  --color-goldl: 245 239 223;
+  --color-goldline: 230 220 192;
+  --color-terracotta: 169 67 46;
+  --color-terracottal: 247 233 229;
+  --color-terraline: 236 213 207;
+  --color-moss: 62 122 78;
+  --color-mossl: 231 240 233;
+  --color-mossline: 207 224 212;
+  --color-gold-bright: 201 162 39;
+  --color-on-accent: 255 255 255;
+  --reader-font-size: 0.9375rem;
+  --reader-width: 46rem;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --color-paper: 17 24 39;
+  --color-paper2: 27 37 53;
+  --color-paper3: 38 50 70;
+  --color-surface: 31 42 59;
+  --color-ink: 242 244 247;
+  --color-ink2: 199 208 221;
+  --color-ink3: 151 164 184;
+  --color-ink4: 113 128 150;
+  --color-line: 52 66 85;
+  --color-line2: 68 82 102;
+  --color-blue: 125 178 227;
+  --color-blued: 169 208 241;
+  --color-bluel: 34 56 78;
+  --color-bluep: 54 90 120;
+  --color-gold: 225 190 106;
+  --color-goldl: 61 52 33;
+  --color-goldline: 109 89 48;
+  --color-terracotta: 226 138 120;
+  --color-terracottal: 67 43 43;
+  --color-terraline: 112 66 59;
+  --color-moss: 134 199 146;
+  --color-mossl: 35 59 43;
+  --color-mossline: 66 103 73;
+  --color-gold-bright: 239 198 91;
+  --color-on-accent: 17 24 39;
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
@@ -10,12 +76,13 @@
   }
   body {
     @apply bg-paper text-ink font-sans;
+    min-width: 320px;
   }
   ::selection {
-    background: #d5e3f0;
+    background: rgb(var(--color-bluep));
   }
   *:focus-visible {
-    outline: 2px solid #2b5c8a;
+    outline: 2px solid rgb(var(--color-blue));
     outline-offset: 2px;
     border-radius: 2px;
   }
@@ -32,7 +99,7 @@
     @apply btn bg-ink text-paper hover:bg-blued;
   }
   .btn-secondary {
-    @apply btn bg-white text-ink border border-line2 hover:border-ink3 hover:bg-paper2;
+    @apply btn bg-surface text-ink border border-line2 hover:border-ink3 hover:bg-paper2;
   }
   .btn-ghost {
     @apply btn text-ink2 hover:bg-paper2 hover:text-ink;
@@ -44,13 +111,29 @@
     @apply inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium tracking-wide uppercase bg-paper2 text-ink2 border border-line;
   }
   .panel {
-    @apply bg-white border border-line;
+    @apply bg-surface border border-line;
   }
   .link-quiet {
     @apply text-blue hover:text-blued underline decoration-line2 underline-offset-2 hover:decoration-blue transition-colors;
   }
   .input {
-    @apply w-full bg-white border border-line2 px-3 py-2 text-sm text-ink placeholder:text-ink4 focus:border-blue focus:outline-none;
+    @apply w-full bg-surface border border-line2 px-3 py-2 text-sm text-ink placeholder:text-ink4 focus:border-blue focus:outline-none;
+  }
+  .kbd {
+    @apply border border-line2 bg-paper2 px-1 font-mono text-[10px];
+  }
+  .reading-content {
+    max-width: var(--reader-width);
+    font-size: var(--reader-font-size);
+  }
+  .reading-content .reading-body {
+    font-size: var(--reader-font-size);
+  }
+  .toast-stack {
+    @apply fixed bottom-4 right-4 z-[70] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2;
+  }
+  .toast {
+    @apply flex items-center gap-2 border border-line2 bg-surface px-3 py-2 text-sm text-ink shadow-pop;
   }
 }
 
@@ -77,7 +160,7 @@
   width: 6px;
 }
 .slim-scroll::-webkit-scrollbar-thumb {
-  background: #d5d1c4;
+  background: rgb(var(--color-line2));
 }
 .slim-scroll::-webkit-scrollbar-track {
   background: transparent;
@@ -85,10 +168,10 @@
 
 /* subtle grid paper background for lab canvases */
 .grid-paper {
-  background-color: #fdfcfa;
+  background-color: rgb(var(--color-surface));
   background-image:
-    linear-gradient(#eef0ee 1px, transparent 1px),
-    linear-gradient(90deg, #eef0ee 1px, transparent 1px);
+    linear-gradient(rgb(var(--color-line) / 0.65) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(var(--color-line) / 0.65) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
@@ -96,5 +179,45 @@
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  @page {
+    margin: 1.5cm;
+  }
+  html,
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print,
+  header,
+  footer,
+  .toast-stack,
+  .concept-toc,
+  button {
+    display: none !important;
+  }
+  main,
+  .reading-content,
+  .print-full {
+    max-width: none !important;
+    width: auto !important;
+  }
+  .reading-content {
+    font-size: 11pt;
+  }
+  .reading-content a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+  .reading-content .border,
+  .reading-content .panel {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+  .katex-display {
+    break-inside: avoid;
   }
 }

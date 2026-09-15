@@ -15,3 +15,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </React.StrictMode>,
 );
+
+// Never register the worker in development: Vite's module graph should remain
+// inspectable and a stale worker must not make local changes look missing.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {
+      // Offline support is progressive enhancement; the lesson still works.
+    });
+  });
+}
