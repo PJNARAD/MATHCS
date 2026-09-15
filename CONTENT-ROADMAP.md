@@ -20,11 +20,11 @@ Refresh this document's numbers with `npm run audit` after any content change.
 | Concepts | **243** (34 hub topics, 209 lessons) |
 | Route payload | **no route downloads lesson bodies** (see §8) |
 | Domains | **15 / 15 published** |
-| Practice questions | **353** — 182 easy, 135 medium, **36 hard** |
-| Theorems with proofs | 74 `thm` blocks, 174 definition blocks |
+| Practice questions | **364** — 184 easy, 138 medium, **42 hard** |
+| Theorems with proofs | 80 `thm` blocks, 175 definition blocks |
 | CS-application call-outs | 190 `cs` blocks |
-| Interactive visualizations | 15 components, **24** used across content |
-| Runnable, output-verified snippets | **52** |
+| Interactive visualizations | 15 components, **26** used across content |
+| Runnable, output-verified snippets | **57** |
 | Learning paths / CS fields / books | 14 / 30 / 24 |
 | Dangling cross-references | **0** |
 
@@ -35,35 +35,46 @@ lessons. `npm run audit` covers what the tests do not: coverage and depth.
 
 ### What was just added (this batch)
 
-The **Boolean algebra** batch — the hub and its four child lessons, brought to
-the finished-lesson shape (the same treatment the Relations batch received):
+The **Recursion** batch — the hub and its five child lessons brought to the
+finished-lesson shape: 1 494 → **6 946 words**, 24 → 53 blocks, 7 → 18 practice.
 
-- **`boolean-algebra`** (hub): the five postulates, the “one algebra, four
-  readings” table (bits / propositions / sets / gates), the multiplexer example
-  read four ways, and its first practice questions.
-- **`boolean-basics`**: the full law table as dual pairs, a proof of the minterm
-  (sum-of-products) expansion, a truth-table-to-canonical-form worked example,
-  and a proof of idempotence from the postulates alone.
-- **`de-morgans-laws`**: a proof from the postulates via uniqueness of
-  complements, negation push-down in a query planner, and the automata contrast
-  (negating a formula is free; complementing a DFA needs determinization).
-- **`logic-gates`**: gate table, a constructive proof that {NAND} is
-  functionally complete, a full adder assembled gate by gate, and gate-library
-  vocabulary (fan-in, depth, tri-state) plus the Apollo NOR-gate history note.
-- **`boolean-simplification`**: the laws that do the work, the consensus theorem
-  with proof, a 3-variable K-map minimization (ten literals → one), a
-  don’t-care example, and the warning that two-level minimization is NP-hard.
+- **`recursion`** (hub): the three obligations of a correct recursion (base case,
+  progress, composition), a recursion-vs-iteration table, Towers of Hanoi
+  (definition, trace and $2^n - 1$ closed form), the termination-by-descent
+  theorem with its minimal-counterexample proof, the stack-limit warning, and
+  its first three practice questions.
+- **`recursive-definitions`**: recursive definitions of sequences and sets with
+  the closure clause, the four faces of one definition (sequences, strings,
+  trees, formulas), structural induction proved by minimal counterexample, and
+  the variants you meet in code (mutual, simultaneous, well-founded, the
+  coinductive dual). Practice includes the leaves-vs-internal-nodes proof.
+- **`recurrence-relations`**: order/linear/homogeneous vocabulary, the catalog of
+  the seven recurrences that actually show up, reading $T(n) = 2T(n/2) + n$ off
+  mergesort, and the unrolling lemma with its geometric-sum proof.
+- **`solving-recurrences`**: the Master Theorem with a recursion-tree proof and
+  four worked classifications, the warning that $n \log n$ overheads and
+  unequal splits fall outside it, characteristic equations with the repeated-root
+  case, Binet's formula proved, and the non-homogeneous worked example.
+- **`recursion-trees`**: level-cost formula, the three-regimes theorem with proof,
+  a regime table, and a root-dominated tree ($3T(n/4) + n^2$ → $\frac{16}{13}n^2$)
+  that produces the constant, not just the class.
+- **`dynamic-programming`**: the four-step recipe (state, transition, order, base
+  cases), the last-decision correctness theorem with induction proof, the
+  Fibonacci comparison, an edit-distance grid example, the classic-state table,
+  and the greedy-vs-DP warning with the {1, 3, 4} coin counterexample.
 
-Supporting changes: 11 new practice questions (4 hard, all `proof`), 3 new
-verified playground snippets (`boolean-laws`, `nand-universal`,
-`kmap-minimize`), and the removal of the last stray `*italic*` markup in this
-topic — the content renderer supports `**bold**`, `code`, and math only.
+Supporting changes: 11 new practice questions (all 18 of the topic's questions
+now carry `mistake` hints and `related` links where predictable), 5 new verified
+playground snippets (`hanoi-moves`, `no-two-ones`, `master-theorem-table`,
+`recursion-tree-levels`, `edit-distance-dp`), and two new uses of the existing
+`recursion-tree` visualization. The concepts-per-domain split also landed in this
+PR; it has its own section in §8.
 
 ---
 
-## 2. Priority 0 — depth: 144 lessons are still stubs
+## 2. Priority 0 — depth: 141 lessons are still stubs
 
-**This is the single largest content gap.** 144 of 209 lessons have four or
+**This is the single largest content gap.** 141 of 209 lessons have four or
 fewer content blocks — typically a definition and one CS note. The lessons are
 correct but they are outlines, not teaching. The audit lists them by block count:
 
@@ -113,13 +124,13 @@ Relations lessons are the current upper end of that range.
   Definitions-without-exercises is the most common complaint about math sites;
   `venn-diagrams`, `matrix-basics`, `gaussian-elimination`, `rank-nullity`,
   `svd`, `turing-machines` are the most conspicuous.
-- **Only 36 of 353 questions are hard.** The advanced half of the curriculum
+- **Only 42 of 364 questions are hard.** The advanced half of the curriculum
   (SVD, decidability, Lagrange multipliers, channel capacity) is under-tested.
-  Target ~15% hard, i.e. ~17 more hard questions. The Relations and Boolean
-  batches are the pattern to copy: their eight hard questions are all `proof`
-  questions, and each one asks for the argument rather than the answer.
-- **Thin metadata**: 36 of 353 questions have a `mistake` field (the "common
-  wrong answer" hint) and 11 use `related`. Both are rendered by the practice
+  Target ~15% hard, i.e. ~13 more hard questions. The Relations, Boolean and
+  Recursion batches are the pattern to copy: their hard questions are almost all
+  `proof` questions, and each one asks for the argument rather than the answer.
+- **Thin metadata**: 48 of 364 questions have a `mistake` field (the "common
+  wrong answer" hint) and 36 use `related`. Both are rendered by the practice
   component and turn a quiz into teaching — the Relations and Boolean questions
   show the intended use (`vacuous truth`, `maximal vs maximum`, "the properties
   correlate, so you cannot count choices independently").
@@ -131,7 +142,7 @@ Relations lessons are the current upper end of that range.
 
 ---
 
-## 4. Priority 2 — interactivity: 219 of 243 concepts have no visualization
+## 4. Priority 2 — interactivity: 217 of 243 concepts have no visualization
 
 Only 15 visualization components exist, and the tests require every registered
 one to be reachable from content. Best next candidates, each tied to concepts
@@ -161,10 +172,10 @@ Reuse the existing `VizShell` and visual tokens so dark mode keeps working;
 Content that is invisible to readers is content that does not exist. Three
 high-leverage pages can be generated **from data already in the repo**:
 
-1. **`/glossary`** — every `def` block (174 of them) as a browsable, searchable
+1. **`/glossary`** — every `def` block (175 of them) as a browsable, searchable
    dictionary with a link back to its lesson. Also feeds the command palette
    (which currently indexes only pages).
-2. **`/theorem-index`** — the 74 `thm` blocks with statements and proofs, grouped
+2. **`/theorem-index`** — the 80 `thm` blocks with statements and proofs, grouped
    by domain, cross-linked to prerequisites. This is the site's "why the
    mathematics is true" library.
 3. **`/applications`** — the 190 `cs` blocks as a "where is this used?" index,
@@ -175,7 +186,7 @@ Smaller reachability fixes:
 
 - **74 concepts appear in no learning path.** Either add them to a path stage or
   mark them as reference material.
-- **191 of 243 concepts have no runnable snippet.** The playground is the most
+- **186 of 243 concepts have no runnable snippet.** The playground is the most
   distinctive part of the site; snippets are cheap to add (a snippet is ~15
   lines plus a verified output via `npm run snippets:write`).
 - **`/progress`** — dashboard over the existing store: completed lessons per
@@ -240,7 +251,7 @@ size of `probability` (16+) before any brand-new domain is considered.
 - **Review the copied-suffix lessons** (`-calc`, `-prob`, `-stat`) — they look
   like accidental forks left by earlier authoring passes.
 - **Reference metadata**: `mistake` and `related` fields on questions, and
-  `tags` on concepts, are still thin (36 and 18 of 353).
+  `tags` on concepts, are still thin (48 and 36 of 364).
 - **Difficulty balance across levels**: 48 foundational / 135 core / 60 advanced
   is healthy, but several `advanced` lessons have thin content (a level label
   that content does not back up).
@@ -251,21 +262,25 @@ size of `probability` (16+) before any brand-new domain is considered.
 
 The current plan is a run of four depth passes over the discrete-mathematics
 topic hubs, in order — each one takes a topic whose lessons are still outlines
-and brings every lesson to the shape in §2. Sizes below are the *current*
-content volume of each topic, so the table doubles as a thinness ranking.
+and brings every lesson to the shape in §2. Three of the four are done
+(Relations, Boolean algebra, Recursion) plus the bundle split they made urgent;
+**Asymptotics is the last one**. Sizes below are the content volume of each topic
+before its pass, so the table doubles as a thinness ranking.
 
 | # | Batch | Lessons (+ hub) | Size before → after | What the pass added |
 |---|---|---|---|---|
 | ✅ done | **Relations** | 4 | 6 196 words, 40 blocks, 19 questions | the property families, criterion proofs, class/partition theorem, linear-extension theorem, 3 snippets |
 | ✅ done | **Boolean algebra** | 4 | 1 133 → **5 089 words**, 17 → 33 blocks, 7 → 18 questions | the postulates and law table, minterm theorem, De Morgan from uniqueness of complements, {NAND} completeness, consensus + K-map work, 3 snippets |
-| 1 | **Recursion** | 5 (`recursive-definitions`, `recurrence-relations`, `solving-recurrences`, `recursion-trees`, `dynamic-programming`) | 1 494 words | structural-induction proofs, Master-Theorem case proofs, characteristic equations, recursion-tree sums, DP correctness and overlapping-subproblem criteria |
-| 2 | **Asymptotics** | 4 (`asymptotic-notation`, `asymptotic-properties`, `growth-rates`, `binary-search`) | 2 130 words | limit-based proofs, counterexamples for the common errors, lower-bound arguments, the loop invariant and "binary search on the answer" |
-| ✅ done | **Concepts-per-domain split** | 15 domain chunks + generated index | 580.79 kB shared chunk → 114.93 kB index + lazy domains | every route stops downloading lesson bodies (see below) |
+| ✅ done | **Recursion** | 5 (`recursive-definitions`, `recurrence-relations`, `solving-recurrences`, `recursion-trees`, `dynamic-programming`) | 1 494 → **6 946 words**, 24 → 53 blocks, 7 → 18 questions | three obligations + termination-by-descent, structural induction, unrolling lemma, Master Theorem with tree proof, Binet, level-sum regime theorem, last-decision DP correctness, 5 snippets |
+| 1 (next) | **Asymptotics** | 4 (`asymptotic-notation`, `asymptotic-properties`, `growth-rates`, `binary-search`) | 2 130 words, 21 blocks, 8 questions (thinnest child `asymptotic-properties` at 172 words) | limit-based proofs, counterexamples for the common errors, lower-bound arguments, the loop invariant and "binary search on the answer" |
+| ✅ done | **Concepts-per-domain split** | 15 domain chunks + generated index | 580.79 kB shared chunk → 115.04 kB index + lazy domains | every route stops downloading lesson bodies (see below) |
 
 `lattice-logic` (880 words) sits under Relations and was already at depth, so it
 was left alone apart from removing its stray `*italic*` markup, which the
-content renderer does not support (use `**bold**` or plain prose). Both finished
-batches are also the two topics that now have a snippet per lesson.
+content renderer does not support (use `**bold**` or plain prose). The first four
+finished batches (Relations, Boolean algebra, Recursion, and the split itself)
+are all in this PR; the three depth topics each ended with at least one snippet
+per lesson.
 
 ### Concepts-per-domain splitting — done in this batch
 
@@ -280,19 +295,19 @@ every route, including `/books` and `/playground`, which need none of it.
 
 | Before | After |
 |---|---|
-| `concepts-*.js` 580.79 kB / 198.41 kB gzip, imported by every route | `concept-index-*.js` **114.93 kB / 27.47 kB gzip**, no lesson content |
-| — | 15 domain chunks (6.4 kB → 110.2 kB raw), fetched one per concept page |
+| `concepts-*.js` 580.79 kB / 198.41 kB gzip, imported by every route | `concept-index-*.js` **115.04 kB / 27.50 kB gzip**, no lesson content |
+| — | 15 domain chunks (6.4 kB → 144.8 kB raw), fetched one per concept page |
 | every route downloaded all lesson bodies | **no route downloads any lesson body** |
 
 Measured with `npm run build` + `node scripts/route-size.mjs`:
 
 ```
 /books                    downloads 305.5 kB │ gzip │ lesson bodies in download: none
-/playground               downloads 186.8 kB │ gzip │ lesson bodies in download: none
-/paths                    downloads 311.6 kB │ gzip │ lesson bodies in download: none
+/playground               downloads 188.7 kB │ gzip │ lesson bodies in download: none
+/paths                    downloads 311.7 kB │ gzip │ lesson bodies in download: none
 /domain/discrete          downloads 302.8 kB │ gzip │ lesson bodies in download: none
-/concept/partial-orders   downloads 330.3 kB │ gzip │ lesson bodies in download: none
-                          + one domain chunk fetched at render time (discrete-2)
+/concept/partial-orders   downloads 332.2 kB │ gzip │ lesson bodies in download: none
+                          + one domain chunk fetched at render time (discrete-2, 144.75 kB)
 ```
 
 **How it works.**
@@ -324,12 +339,23 @@ has a loader and no loader is dead weight; `readConcept` suspends before load,
 returns synchronously after, and returns `undefined` for unknown ids; every
 domain loads a body whose title and block count match its index entry.
 
-**What the split did not fix.** `ui-*.js` is now the heaviest shared chunk
-(779.34 kB / 138.12 kB gzip) and every route pays it, because `ui.tsx` holds both
-the shell pieces (`Icon`, chips, `ConceptLink`) and the lesson renderer
-(`BlockView`, `Practice`). Splitting that module is the next size win — a
-`/books` visitor does not need the block renderer — and it is a smaller, purely
-mechanical change than this one was.
+**What the split did not fix, and what the first batch after it revealed.**
+
+- `ui-*.js` (779.34 kB / 138.12 kB gzip) is now the heaviest shared chunk and
+  every route pays it, because `ui.tsx` holds both the shell pieces (`Icon`,
+  chips, `ConceptLink`) and the lesson renderer (`BlockView`, `Practice`).
+  Splitting that module is the next size win — a `/books` visitor does not need
+  the block renderer — and it is a smaller, purely mechanical change than this
+  one was.
+- The lazy granularity is one chunk **per loader entry**, and `discrete-2` is a
+  single entry covering the Boolean, Recursion and Asymptotics topics. The
+  Recursion batch alone grew it from 110.20 kB to **144.75 kB (49.26 kB gzip)**,
+  now the largest domain chunk. A concept page still fetches exactly one chunk,
+  so nothing regressed, but the next batch in this queue (Asymptotics, four
+  concepts) will add another ~10 kB to it. If it crosses ~180 kB, split the
+  discrete loader by topic (`discrete-2` → Boolean / recursion+asymptotics), which
+  is a two-line change to `DOMAIN_LOADERS` plus the generated index's `domain`
+  grouping.
 
 ### Other backlog (unchanged)
 
@@ -349,7 +375,7 @@ mechanical change than this one was.
 5. **Split `ui.tsx`** — the shell pieces from the lesson renderer (see above).
    It is the largest remaining shared download at 138 kB gzip per route.
 
-Guardrails to keep: every batch ends with `npm run verify` (229 tests, 52
-verified snippets, SSR smoke) and `npm run audit` must report **0 dangling
+Guardrails to keep: every batch ends with `npm run verify` (247 tests, 57
+verified snippets, index freshness, SSR smoke) and `npm run audit` must report **0 dangling
 references** — regressions there mean a lesson was promised and not written.
 

@@ -1251,6 +1251,131 @@ console.log("minimized: " + primes.map(p => term(p.bits, names.map((_, i) => (p.
             "  ->  " + primes.length + " term, " + literals + " literal");`,
     output: 'prime implicant: b\'   covers rows 0, 1, 4, 5\ncanonical form: 4 terms, 12 literals\nminimized: b\'  ->  1 term, 1 literal',
   },
+  {
+    id: 'hanoi-moves',
+    conceptId: 'recursion',
+    title: 'Towers of Hanoi: the definition runs',
+    blurb: 'Three lines of recursion move a tower; the move count doubles with every extra disc.',
+    code: `const moves = [];
+function hanoi(n, from, to, via) {
+  if (n === 0) return;
+  hanoi(n - 1, from, via, to);
+  moves.push(from + "->" + to);
+  hanoi(n - 1, via, to, from);
+}
+
+hanoi(3, "A", "C", "B");
+console.log("n = 3: " + moves.join(" "));
+console.log("moves for n = 3: " + moves.length);
+
+let closes = true;
+for (let n = 1; n <= 12; n++) {
+  moves.length = 0;
+  hanoi(n, "A", "C", "B");
+  if (moves.length !== 2 ** n - 1) closes = false;
+}
+console.log("M(n) = 2^n - 1 for n = 1..12: " + closes);
+console.log("n = 10 needs " + (2 ** 10 - 1) + " moves");`,
+    output: 'n = 3: A->C A->B C->B A->C B->A B->C A->C\nmoves for n = 3: 7\nM(n) = 2^n - 1 for n = 1..12: true\nn = 10 needs 1023 moves',
+  },
+  {
+    id: 'no-two-ones',
+    conceptId: 'recursive-definitions',
+    title: 'Free monoids from a recursive definition',
+    blurb: 'Counting length-n binary strings with no two consecutive 1s: split on the first symbol and Fibonacci appears.',
+    code: `const S = [1, 2];                       // S[0] = empty string, S[1] = "0" and "1"
+for (let n = 2; n <= 20; n++) S.push(S[n - 1] + S[n - 2]);
+
+function brute(n) {
+  let count = 0;
+  for (let m = 0; m < 2 ** n; m++) {
+    const bits = m.toString(2).padStart(n, "0");
+    if (!bits.includes("11")) count++;
+  }
+  return count;
+}
+
+let matches = true;
+for (let n = 1; n <= 14; n++) if (S[n] !== brute(n)) matches = false;
+console.log("S(1..8) = " + S.slice(1, 9).join(", "));
+console.log("recursion matches brute force for n = 1..14: " + matches);
+console.log("S(20) = " + S[20] + ", and that is Fibonacci F(22) = 17711");`,
+    output: 'S(1..8) = 2, 3, 5, 8, 13, 21, 34, 55\nrecursion matches brute force for n = 1..14: true\nS(20) = 17711, and that is Fibonacci F(22) = 17711',
+  },
+  {
+    id: 'master-theorem-table',
+    conceptId: 'solving-recurrences',
+    title: 'Master Theorem: classify by comparing the exponents',
+    blurb: 'One comparison of k against log_b(a) decides each of the classic recurrences.',
+    code: `const rows = [
+  { name: "binary search", a: 1, b: 2, k: 0 },
+  { name: "merge sort", a: 2, b: 2, k: 1 },
+  { name: "Karatsuba", a: 3, b: 2, k: 1 },
+  { name: "Strassen", a: 7, b: 2, k: 2 },
+  { name: "3T(n/4) + n^2", a: 3, b: 4, k: 2 },
+];
+
+for (const r of rows) {
+  const c = Math.log(r.a) / Math.log(r.b);
+  const eps = 1e-9;
+  const which = Math.abs(r.k - c) < eps ? 2 : r.k < c ? 1 : 3;
+  const answer =
+    which === 1 ? "Theta(n^" + c.toFixed(2) + ")" :
+    which === 2 ? (r.k === 0 ? "Theta(log n)" : "Theta(n" + (r.k === 1 ? "" : "^" + r.k) + " log n)") :
+    "Theta(n" + (r.k === 1 ? "" : "^" + r.k) + ")";
+  console.log(r.name + ": k=" + r.k + ", log_b a=" + c.toFixed(3) + " -> case " + which + ", " + answer);
+}`,
+    output: 'binary search: k=0, log_b a=0.000 -> case 2, Theta(log n)\nmerge sort: k=1, log_b a=1.000 -> case 2, Theta(n log n)\nKaratsuba: k=1, log_b a=1.585 -> case 1, Theta(n^1.58)\nStrassen: k=2, log_b a=2.807 -> case 1, Theta(n^2.81)\n3T(n/4) + n^2: k=2, log_b a=0.792 -> case 3, Theta(n^2)',
+  },
+  {
+    id: 'recursion-tree-levels',
+    conceptId: 'recursion-trees',
+    title: 'Level sums for 3T(n/4) + n^2',
+    blurb: 'The root dominates, and the whole tree costs only 16/13 of the root — the geometric series made numeric.',
+    code: `function levels(n, a, b, k) {
+  const out = [];
+  let size = n, count = 1;
+  for (let i = 0; i < 20 && size >= 1; i++) {
+    out.push({ i, count, size, work: count * Math.pow(size, k) });
+    size = size / b;
+    count = count * a;
+  }
+  return out;
+}
+
+const n = 256, a = 3, b = 4, k = 2;
+const L = levels(n, a, b, k);
+for (const l of L) {
+  console.log("level " + l.i + ": " + l.count + (l.count === 1 ? " node" : " nodes") + " of size " + l.size.toFixed(2) + ", work = " + l.work.toFixed(1));
+}
+const total = L.reduce((s, l) => s + l.work, 0);
+console.log("sum over all levels: " + total.toFixed(1));
+console.log("geometric limit: 16/13 * n^2 = " + (16 / 13 * n * n).toFixed(1) + ", of which the root contributes " + L[0].work.toFixed(1));`,
+    output: 'level 0: 1 node of size 256.00, work = 65536.0\nlevel 1: 3 nodes of size 64.00, work = 12288.0\nlevel 2: 9 nodes of size 16.00, work = 2304.0\nlevel 3: 27 nodes of size 4.00, work = 432.0\nlevel 4: 81 nodes of size 1.00, work = 81.0\nsum over all levels: 80641.0\ngeometric limit: 16/13 * n^2 = 80659.7, of which the root contributes 65536.0',
+  },
+  {
+    id: 'edit-distance-dp',
+    conceptId: 'dynamic-programming',
+    title: 'Edit distance as a filled table',
+    blurb: 'Kitten to sitting in three edits, with the whole DP grid printed: 56 states, three options each.',
+    code: `function editTable(a, b) {
+  const d = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i++) d[i][0] = i;
+  for (let j = 0; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++)
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d;
+}
+
+const a = "kitten", b = "sitting";
+const d = editTable(a, b);
+console.log("      " + ["", ...b].map((c) => c.padStart(3)).join(""));
+d.forEach((row, i) => console.log((i === 0 ? " " : a[i - 1]) + "  " + row.map((v) => String(v).padStart(3)).join("")));
+console.log("states filled: " + (a.length + 1) + " x " + (b.length + 1) + " = " + ((a.length + 1) * (b.length + 1)));
+console.log("edit distance " + a + " -> " + b + ": " + d[a.length][b.length]);`,
+    output: '           s  i  t  t  i  n  g\n     0  1  2  3  4  5  6  7\nk    1  1  2  3  4  5  6  7\ni    2  2  1  2  3  4  5  6\nt    3  3  2  1  2  3  4  5\nt    4  4  3  2  1  2  3  4\ne    5  5  4  3  2  2  3  4\nn    6  6  5  4  3  3  2  3\nstates filled: 7 x 8 = 56\nedit distance kitten -> sitting: 3',
+  },
 ];
 
 export const snippetById = (id: string): Snippet | undefined => snippets.find((s) => s.id === id);

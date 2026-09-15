@@ -17,6 +17,8 @@ const routes = [
   // Lessons added to close dangling references (see scripts/audit.ts).
   '/concept/kruskal-prims', '/concept/union-find', '/concept/maximum-flow', '/concept/max-flow-min-cut',
   '/concept/matching', '/concept/cosine-similarity', '/concept/lattice-logic', '/concept/binary-search',
+  // Newest depth batches (Relations, Boolean algebra, Recursion) through the lazy loader.
+  '/concept/partial-orders', '/concept/boolean-simplification', '/concept/recursion', '/concept/dynamic-programming',
   '/domain/number-theory', '/field/ml', '/path/ml-foundations',
 ];
 
