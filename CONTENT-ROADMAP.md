@@ -19,11 +19,11 @@ Refresh this document's numbers with `npm run audit` after any content change.
 |---|---|
 | Concepts | **243** (34 hub topics, 209 lessons) |
 | Domains | **15 / 15 published** |
-| Practice questions | **330** — 178 easy, 124 medium, **28 hard** |
-| Theorems with proofs | 66 `thm` blocks, 171 definition blocks |
+| Practice questions | **342** — 180 easy, 130 medium, **32 hard** |
+| Theorems with proofs | 71 `thm` blocks, 173 definition blocks |
 | CS-application call-outs | 189 `cs` blocks |
 | Interactive visualizations | 15 components, **24** used across content |
-| Runnable, output-verified snippets | **46** |
+| Runnable, output-verified snippets | **49** |
 | Learning paths / CS fields / books | 14 / 30 / 24 |
 | Dangling cross-references | **0** |
 
@@ -34,28 +34,40 @@ lessons. `npm run audit` covers what the tests do not: coverage and depth.
 
 ### What was just added (this batch)
 
-The audit found ten cross-links pointing at concepts that did not exist — the
-curriculum was promising lessons it never wrote (`network-flow → maximum-flow`,
-`bipartite-graphs → matching`, `dot-product → cosine-similarity`,
-`partial-orders → lattice-logic`, `root-finding → binary-search`,
-`minimum-spanning-trees → kruskal-prims, union-find`, …). All ten now resolve:
+The **Relations** batch — four lessons plus the hub, brought to the
+finished-lesson shape in `src/data/concepts/discrete-2.ts`:
 
-- **Graph theory** (`src/data/concepts/graph-algorithms.ts`): Kruskal & Prim,
-  Union–Find, Maximum Flow, Max-Flow Min-Cut, Bipartite Matching & Hall's theorem.
-- **Linear algebra**: Cosine Similarity and Vector Angles.
-- **Discrete math**: Lattices (meets, joins, Knaster–Tarski, dataflow analysis)
-  and Binary Search and the Logarithmic Bound.
-- 23 new practice questions, 4 new verified playground snippets
-  (union–find, binary search, cosine similarity, Edmonds–Karp), 6 books filling
-  the statistics/geometry/abstract-algebra gaps, and roadmap copy on the home
-  page and footer corrected (the old text still claimed domains were "on the
-  roadmap" with 15/15 live).
+- **`relations`** (hub): the classification table (which property combination
+  names a preorder, equivalence relation, partial order, total order, lattice),
+  a relational-reading example over an `orders` table, and its first practice
+  questions.
+- **`relation-basics`**: the counting formula ($2^{|A||B|}$ relations), a proof
+  that composition is associative and that inversion reverses order, a
+  matrix-multiplication worked example, and reachability/join applications.
+- **`relation-properties`**: one table showing each property as pairs, matrix
+  condition and digraph shape; closures (reflexive, symmetric, transitive); the
+  vacuous-truth trap; proofs that transitivity is the closure condition
+  $R \circ R \subseteq R$ and that symmetric + antisymmetric forces $R \subseteq \Delta$.
+- **`equivalence-relations`**: the class equation, proofs that partitions
+  biject with equivalence relations and that intersections (but not unions) of
+  equivalence relations are equivalence relations, plus congruence, hashing and
+  connected-components worked examples.
+- **`partial-orders`**: Hasse diagrams, maximal vs maximum, chains and
+  antichains, a proof of the linear-extension (topological ordering) theorem,
+  and a divisibility-poset walkthrough that motivates lattices.
+
+Supporting changes: 12 new practice questions (4 of them hard), 3 new verified
+playground snippets (`relation-matrix`, `equivalence-classes`,
+`linear-extension-count`), and `mistake`/`related` metadata on the questions
+where a wrong answer is predictable. The four lessons are now the deepest on
+the site (1.1k–1.6k words each) and are the reference implementation of the
+"finished lesson" shape described in §2.
 
 ---
 
-## 2. Priority 0 — depth: 152 lessons are still stubs
+## 2. Priority 0 — depth: 148 lessons are still stubs
 
-**This is the single largest content gap.** 152 of 209 lessons have four or
+**This is the single largest content gap.** 148 of 209 lessons have four or
 fewer content blocks — typically a definition and one CS note. The lessons are
 correct but they are outlines, not teaching. The audit lists them by block count:
 
@@ -68,25 +80,34 @@ Worst offenders (1–2 blocks): `differentiation-rules-calc`, `integration-techn
 `definite-integral`, `diagonalization`, `basis-dimension`, `decidability`.
 
 **Target shape for a finished lesson** (this is what the best existing lessons
-do — see `network-flow`, `minimum-spanning-trees`, `rsa-cryptography`):
+do — the four Relations lessons, `divisibility-tests`, `matching`,
+`binary-search`, `rsa-cryptography`):
 
 1. `intuition` — one paragraph of plain-language motivation, no symbols.
 2. `def` / `formula` — the precise statement with KaTeX.
-3. `ex` — a worked example with numbered steps (208 already exist; add one to
+3. `ex` — a worked example with numbered steps (224 already exist; add one to
    every lesson that lacks it).
-4. `thm` with `proof` — for anything provable (63 exist).
+4. `thm` with `proof` — for anything provable (71 exist). Where two theorems
+   compete for space, the second one should be a *criterion* (a matrix or
+   closure condition) rather than another statement.
 5. `viz` — the interactive lab, where one exists.
-6. `cs` — at least two concrete CS applications.
-7. `practice` — 2–3 questions including one `proof` or `numeric`.
+6. `cs` — at least two concrete CS applications, with the concept name the
+   application is hiding behind ("a join is composition", "the cycle check in
+   Kruskal is an equivalence-class comparison").
+7. `practice` — 3–4 questions including one `proof` or `numeric`, and a
+   `mistake` field whenever a wrong answer is predictable.
 
 **Suggested order** (highest-traffic domains first, since they sit on the
 learning paths): number-theory (8 thin) → linear-algebra (20) → calculus (15) →
 probability (13) → combinatorics (12) → graph-theory (10) → proofs (10) →
 statistics (9) → formal (7) → numerical (6) → optimization (5) → geometry (5) →
-abstract-algebra (5) → information-theory (5) → discrete (27, mostly short
-sub-lessons under Logic/Sets/Functions hubs).
+abstract-algebra (5) → information-theory (5) → discrete (18, mostly short
+sub-lessons under the Logic/Sets/Functions/Relations/Recursion/Asymptotics
+hubs, and the current focus of the planned queue in §8).
 
-Realistic pace: 5–8 lessons per batch, `npm run verify` after each batch.
+Realistic pace: 4–5 lessons per batch, `npm run verify` after each batch. A
+deepened lesson lands at 700–1,500 words of content plus practice; the four
+Relations lessons are the current upper end of that range.
 
 ---
 
@@ -96,12 +117,16 @@ Realistic pace: 5–8 lessons per batch, `npm run verify` after each batch.
   Definitions-without-exercises is the most common complaint about math sites;
   `venn-diagrams`, `matrix-basics`, `gaussian-elimination`, `rank-nullity`,
   `svd`, `turing-machines` are the most conspicuous.
-- **Only 28 of 330 questions are hard.** The advanced half of the curriculum
+- **Only 32 of 342 questions are hard.** The advanced half of the curriculum
   (SVD, decidability, Lagrange multipliers, channel capacity) is under-tested.
-  Target ~15% hard, i.e. ~22 more hard questions.
-- **Almost no metadata**: 21 of 330 questions have a `mistake` field (the
-  "common wrong answer" hint) and **0** use `related`. Both are rendered by the
-  practice component and turn a quiz into teaching.
+  Target ~15% hard, i.e. ~19 more hard questions. The Relations batch is the
+  pattern to copy: its four hard questions are all `proof` questions, and each
+  one asks for the *argument* rather than the answer.
+- **Thin metadata**: 30 of 342 questions have a `mistake` field (the "common
+  wrong answer" hint) and 11 use `related`. Both are rendered by the practice
+  component and turn a quiz into teaching — the Relations questions show the
+  intended use (`vacuous truth`, `maximal vs maximum`, "the properties
+  correlate, so you cannot count choices independently").
 - **No interleaved practice.** Every question lives inside its lesson. A
   `/practice` page that samples across completed lessons — the store already
   records attempts and correctness — would convert the site from a book into
@@ -140,10 +165,10 @@ Reuse the existing `VizShell` and visual tokens so dark mode keeps working;
 Content that is invisible to readers is content that does not exist. Three
 high-leverage pages can be generated **from data already in the repo**:
 
-1. **`/glossary`** — every `def` block (171 of them) as a browsable, searchable
+1. **`/glossary`** — every `def` block (173 of them) as a browsable, searchable
    dictionary with a link back to its lesson. Also feeds the command palette
    (which currently indexes only pages).
-2. **`/theorem-index`** — the 66 `thm` blocks with statements and proofs, grouped
+2. **`/theorem-index`** — the 71 `thm` blocks with statements and proofs, grouped
    by domain, cross-linked to prerequisites. This is the site's "why the
    mathematics is true" library.
 3. **`/applications`** — the 189 `cs` blocks as a "where is this used?" index,
@@ -154,7 +179,7 @@ Smaller reachability fixes:
 
 - **74 concepts appear in no learning path.** Either add them to a path stage or
   mark them as reference material.
-- **197 of 243 concepts have no runnable snippet.** The playground is the most
+- **194 of 243 concepts have no runnable snippet.** The playground is the most
   distinctive part of the site; snippets are cheap to add (a snippet is ~15
   lines plus a verified output via `npm run snippets:write`).
 - **`/progress`** — dashboard over the existing store: completed lessons per
@@ -219,27 +244,88 @@ size of `probability` (16+) before any brand-new domain is considered.
 - **Review the copied-suffix lessons** (`-calc`, `-prob`, `-stat`) — they look
   like accidental forks left by earlier authoring passes.
 - **Reference metadata**: `mistake` and `related` fields on questions, and
-  `tags` on concepts, are almost unused (21 and 0 of 330).
+  `tags` on concepts, are still thin (30 and 11 of 342).
 - **Difficulty balance across levels**: 48 foundational / 135 core / 60 advanced
   is healthy, but several `advanced` lessons have thin content (a level label
   that content does not back up).
 
 ---
 
-## 8. Recommended next batch
+## 8. The planned queue
 
-If the goal is the largest visible improvement per unit of writing:
+The current plan is a run of four depth passes over the discrete-mathematics
+topic hubs, in order — each one takes a topic whose lessons are still outlines
+and brings every lesson to the shape in §2. Sizes below are the *current*
+content volume of each topic, so the table doubles as a thinness ranking.
 
-1. **Glossary + theorem index pages** (~1 session, generated from 237 existing
+| # | Batch | Lessons (+ hub) | Current size | What the pass adds |
+|---|---|---|---|---|
+| ✅ done | **Relations** | 4 | 6 196 words (after) | properties, classes, orders, criterion proofs, 12 questions, 3 snippets |
+| 1 | **Boolean algebra** | 4 (`boolean-basics`, `de-morgans-laws`, `logic-gates`, `boolean-simplification`) | 1 133 words | proofs of the algebraic laws from the postulates, NAND/NOR universality, K-map worked examples, adder/mux hardware applications |
+| 2 | **Recursion** | 5 (`recursive-definitions`, `recurrence-relations`, `solving-recurrences`, `recursion-trees`, `dynamic-programming`) | 1 494 words | structural-induction proofs, Master-Theorem case proofs, characteristic equations, recursion-tree sums, DP correctness and overlapping-subproblem criteria |
+| 3 | **Asymptotics** | 4 (`asymptotic-notation`, `asymptotic-properties`, `growth-rates`, `binary-search`) | 2 130 words | limit-based proofs, counterexamples for the common errors, lower-bound arguments, the loop invariant and "binary search on the answer" |
+
+`lattice-logic` (880 words) sits under Relations and was already at depth, so it
+was left alone apart from removing its stray `*italic*` markup, which the
+content renderer does not support (use `**bold**` or plain prose).
+
+### Concepts-per-domain splitting (schedule after Boolean algebra)
+
+The bundle is lazy-loaded per route, but the concept registry is not: every
+lazy page that touches a concept imports `src/lib/concepts.ts`, which
+statically pulls all 19 domain files. Measured with `npm run build` after the
+Relations batch:
+
+```
+dist/assets/concepts-*.js   556.70 kB │ gzip: 190.07 kB   ← shared by nearly every route
+dist/assets/ui-*.js         779.36 kB │ gzip: 138.12 kB
+dist/assets/snippets-*.js    46.65 kB │ gzip:  16.40 kB
+```
+
+Every future content batch makes that shared chunk bigger, and it is paid for
+by routes that need none of it (`/books`, `/playground`, the command palette's
+index). Splitting it is now cheaper than after three more batches.
+
+The shape of the work:
+
+1. Add a generated **concept index** (`id → {title, domain, level, summary,
+   prerequisites, related, next, hasPractice, hasSnippet}`) emitted by a script
+   into a small `src/data/concept-index.ts`. The audit script already walks the
+   same fields, so the generator can be extracted from `scripts/audit.ts`.
+2. Point `ConceptLink`, the command palette, search, `/paths`, `/fields` and the
+   home page at the index — they need titles and links, not lesson bodies.
+3. Keep the domain files as the content source and load them through
+   `import('../data/concepts/<domain>')`, resolved by an explicit
+   `Record<domain, () => Promise<Concept[]>>` map (Vite cannot glob into a
+   static `import()` anyway, and the explicit map keeps the chunk names stable).
+4. `ConceptPage` and `DomainPage` become async: `useEffect` + cache, with the
+   existing `Suspense` fallback and `Loading lesson` copy as the pending state.
+   `getConcept(id)` stays synchronous *against the loaded cache* so the UI layer
+   does not need a refactor — only the two pages that need bodies become async.
+5. Tests: `tests/run.ts`, `tests/smoke.tsx` and `scripts/audit.ts` keep importing
+   the static registry (they are not shipped), so they need only a renamed import
+   path. Add one guard test that a domain module is not imported by
+   `concept-index.ts`.
+
+Success criterion: `/books` and `/playground` no longer download any lesson
+bodies; `/concept/<id>` downloads one domain file instead of all nineteen; the
+concepts chunk in `npm run build` splits into 19 domain chunks plus the index.
+
+### Other backlog (unchanged)
+
+1. **Glossary + theorem index pages** (~1 session, generated from 173 existing
    `def`/`thm` blocks) — new surfaces with no new authoring.
 2. **Practice for the 42 lesson gaps** (~1 session) — every lesson then teaches
    and tests.
 3. **The three graph-theory visualizations** (union–find, flow-residual,
    matching) — the newest lessons are the most interactive-needy and the graph
-   engine already exists.
+   engine already exists. A relation/Hasse-diagram lab would be the natural
+   fifth, since the Relations lessons are the only topic of the four passes
+   with no interactivity at all.
 4. **Depth pass on number-theory and linear-algebra** (8 + 20 thin lessons) —
    the two domains that sit on the most learning paths.
 
-Guardrails to keep: every batch ends with `npm run verify` (229 tests, 46+
+Guardrails to keep: every batch ends with `npm run verify` (229 tests, 49
 verified snippets, SSR smoke) and `npm run audit` must report **0 dangling
 references** — regressions there mean a lesson was promised and not written.
+

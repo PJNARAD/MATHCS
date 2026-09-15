@@ -1079,6 +1079,76 @@ console.log("max flow = " + total);
 console.log("min cut: vertices reachable from s = {" + Object.keys(reachable).join(", ") + "}");`,
     output: 'round 1: s->a + a->t  bottleneck = 2  flow = 2\nround 2: s->b + b->t  bottleneck = 2  flow = 4\nround 3: s->a + a->b + b->t  bottleneck = 1  flow = 5\nmax flow = 5\nmin cut: vertices reachable from s = {s}',
   },
+  {
+    id: 'relation-matrix',
+    conceptId: 'relation-properties',
+    title: 'The four properties, read off one matrix',
+    blurb: 'Build the Boolean matrix of “divides” and let the machine check reflexivity, symmetry, antisymmetry and transitivity in one line each.',
+    code: `const A = [2, 3, 4, 6, 12];
+const M = A.map(a => A.map(b => (b % a === 0 ? 1 : 0)));
+const transpose = X => X[0].map((_, j) => X.map(row => row[j]));
+const booleanProduct = (X, Y) => X.map(row => Y[0].map((_, j) => (row.some((v, k) => v && Y[k][j]) ? 1 : 0)));
+
+const equal = (X, Y) => JSON.stringify(X) === JSON.stringify(Y);
+const reflexive = M.every((row, i) => row[i] === 1);                                  // diagonal is all 1s
+const symmetric = equal(M, transpose(M));                                             // M = M^T
+const antisymmetric = M.every((row, i) => row.every((v, j) => !(v === 1 && i !== j && M[j][i] === 1)));
+const transitive = booleanProduct(M, M).every((row, i) => row.every((v, j) => v <= M[i][j]));  // M^2 <= M
+
+M.forEach(row => console.log(row.join(" ")));
+console.log("reflexive " + reflexive + " | symmetric " + symmetric + " | antisymmetric " + antisymmetric + " | transitive " + transitive);
+console.log("profile: reflexivity, antisymmetry and transitivity hold and symmetry fails -> partial order");`,
+    output: '1 0 1 1 1\n0 1 0 1 1\n0 0 1 0 1\n0 0 0 1 1\n0 0 0 0 1\nreflexive true | symmetric false | antisymmetric true | transitive true\nprofile: reflexivity, antisymmetry and transitivity hold and symmetry fails -> partial order',
+  },
+  {
+    id: 'equivalence-classes',
+    conceptId: 'equivalence-relations',
+    title: 'Five boxes, computed by one modulo',
+    blurb: 'Congruence mod 5 files integers into classes; the last two lines show why arithmetic on classes is well defined.',
+    code: `const mod5 = n => ((n % 5) + 5) % 5;   // canonical representative of the class of n
+const values = [-7, -1, 0, 3, 8, 12, 17];
+
+const classes = {};
+for (const n of values) {
+  const c = mod5(n);
+  (classes[c] = classes[c] || []).push(n);
+}
+for (const c of Object.keys(classes).sort()) console.log("class [" + c + "] = {" + classes[c].join(", ") + "}");
+
+const filed = Object.values(classes).reduce((s, xs) => s + xs.length, 0);
+console.log("elements filed " + filed + " of " + values.length + " | nonempty classes " + Object.keys(classes).length);
+
+const a1 = 3, b1 = 12, a2 = 8, b2 = 17;
+console.log("class(" + a1 + ") = " + mod5(a1) + " and class(" + b1 + ") = " + mod5(b1) + " -> " + a1 + " + " + b1 + " = " + (a1 + b1) + " lands in class " + mod5(a1 + b1));
+console.log("class(" + a2 + ") = " + mod5(a2) + " and class(" + b2 + ") = " + mod5(b2) + " -> " + a2 + " + " + b2 + " = " + (a2 + b2) + " lands in class " + mod5(a2 + b2));
+console.log("same input classes, same output class: " + (mod5(a1 + b1) === mod5(a2 + b2)));`,
+    output: 'class [0] = {0}\nclass [2] = {12, 17}\nclass [3] = {-7, 3, 8}\nclass [4] = {-1}\nelements filed 7 of 7 | nonempty classes 4\nclass(3) = 3 and class(12) = 2 -> 3 + 12 = 15 lands in class 0\nclass(8) = 3 and class(17) = 2 -> 8 + 17 = 25 lands in class 0\nsame input classes, same output class: true',
+  },
+  {
+    id: 'linear-extension-count',
+    conceptId: 'partial-orders',
+    title: 'Counting the linear extensions of a poset',
+    blurb: 'A five-task dependency poset has 120 orderings and exactly 2 that respect the constraints — the two incomparable tasks can go either way.',
+    code: `// a before b and c; b and c before d; d before e
+const after = { a: ["b", "c"], b: ["d"], c: ["d"], d: ["e"], e: [] };
+const tasks = ["a", "b", "c", "d", "e"];
+const leq = (x, y) => x === y || after[x].some(z => leq(z, y));   // transitive closure of the edge relation
+
+const permutations = arr => arr.length <= 1 ? [arr] : arr.flatMap((x, i) =>
+  permutations([...arr.slice(0, i), ...arr.slice(i + 1)]).map(p => [x, ...p]));
+
+const valid = permutations(tasks).filter(order =>
+  order.every((t, i) => order.slice(i + 1).every(u => !leq(u, t))));
+
+console.log("valid build orders:");
+valid.forEach(order => console.log("  " + order.join(" -> ")));
+console.log("count: " + valid.length + " of " + permutations(tasks).length + " orderings");
+
+const incomparable = [];
+for (const x of tasks) for (const y of tasks) if (x < y && !leq(x, y) && !leq(y, x)) incomparable.push(x + "~" + y);
+console.log("incomparable pairs: " + incomparable.join(" "));`,
+    output: 'valid build orders:\n  a -> b -> c -> d -> e\n  a -> c -> b -> d -> e\ncount: 2 of 120 orderings\nincomparable pairs: b~c',
+  },
 ];
 
 export const snippetById = (id: string): Snippet | undefined => snippets.find((s) => s.id === id);
