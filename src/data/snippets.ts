@@ -1376,6 +1376,88 @@ console.log("states filled: " + (a.length + 1) + " x " + (b.length + 1) + " = " 
 console.log("edit distance " + a + " -> " + b + ": " + d[a.length][b.length]);`,
     output: '           s  i  t  t  i  n  g\n     0  1  2  3  4  5  6  7\nk    1  1  2  3  4  5  6  7\ni    2  2  1  2  3  4  5  6\nt    3  3  2  1  2  3  4  5\nt    4  4  3  2  1  2  3  4\ne    5  5  4  3  2  2  3  4\nn    6  6  5  4  3  3  2  3\nstates filled: 7 x 8 = 56\nedit distance kitten -> sitting: 3',
   },
+  {
+    id: 'growth-race',
+    conceptId: 'growth-rates',
+    title: 'The wall, in numbers',
+    blurb: 'What each growth rate costs at n = 10^6 and 10^9, at a billion operations per second.',
+    code: `const RATE = 1e9;                       // operations per second
+const human = (ops) => {
+  const seconds = ops / RATE;
+  if (seconds < 1e-3) return "< 1 millisecond";
+  if (seconds < 1) {
+    const ms = Math.round(seconds * 1000);
+    return ms + (ms === 1 ? " millisecond" : " milliseconds");
+  }
+  if (seconds < 120) return seconds.toFixed(1) + " seconds";
+  if (seconds < 7200) return (seconds / 60).toFixed(0) + " minutes";
+  if (seconds < 3.2e7) return (seconds / 3600).toFixed(0) + " hours";
+  return (seconds / 3.15e7).toExponential(1) + " years";
+};
+
+for (const n of [1e3, 1e6]) {
+  const rows = [
+    ["n", n],
+    ["n log2 n", n * Math.log2(n)],
+    ["n^2", n * n],
+    ["n^3", n * n * n],
+  ];
+  console.log("n = " + n.toExponential(0));
+  for (const [name, ops] of rows) {
+    console.log("  " + name.padEnd(9) + ops.toExponential(2).padStart(9) + " ops   " + human(ops));
+  }
+}
+console.log("2^n and n! are not printed: 2^100 is about 1.3e30, 20! is about 2.4e18");`,
+    output: 'n = 1e+3\n  n          1.00e+3 ops   < 1 millisecond\n  n log2 n   9.97e+3 ops   < 1 millisecond\n  n^2        1.00e+6 ops   1 millisecond\n  n^3        1.00e+9 ops   1.0 seconds\nn = 1e+6\n  n          1.00e+6 ops   1 millisecond\n  n log2 n   1.99e+7 ops   20 milliseconds\n  n^2       1.00e+12 ops   17 minutes\n  n^3       1.00e+18 ops   3.2e+1 years\n2^n and n! are not printed: 2^100 is about 1.3e30, 20! is about 2.4e18',
+  },
+  {
+    id: 'amortized-append',
+    conceptId: 'asymptotic-properties',
+    title: 'Amortised O(1): the doubling array',
+    blurb: 'Count the copies when a dynamic array doubles: the total is under 2n, so each append costs O(1) on average.',
+    code: `let capacity = 1, size = 0, copies = 0, worst = 0;
+const n = 1000;
+for (let append = 0; append < n; append++) {
+  if (size === capacity) {
+    copies += size;                     // reallocate and copy everything
+    worst = Math.max(worst, size);
+    capacity *= 2;
+  }
+  size++;
+}
+console.log("appends: " + size);
+console.log("copies in total: " + copies + "  (bound 2n = " + 2 * n + ")");
+console.log("most expensive single append: " + worst + " copies");
+console.log("average copies per append: " + (copies / size).toFixed(3) + " -> O(1) amortised");
+console.log("final capacity: " + capacity + " (under 2n = " + 2 * n + ")");`,
+    output: 'appends: 1000\ncopies in total: 1023  (bound 2n = 2000)\nmost expensive single append: 512 copies\naverage copies per append: 1.023 -> O(1) amortised\nfinal capacity: 1024 (under 2n = 2000)',
+  },
+  {
+    id: 'binary-search-halving',
+    conceptId: 'binary-search',
+    title: 'The halving bound, checked',
+    blurb: 'Worst-case comparisons of binary search on n items against ceil(log2(n+1)) — and the 40 steps a 10^12 capacity range needs.',
+    code: `function worstCaseComparisons(n) {
+  // target is the last element: the adversary keeps it in the surviving half every time.
+  let lo = 0, hi = n - 1, count = 0;
+  while (lo <= hi) {
+    const mid = lo + Math.floor((hi - lo) / 2);
+    count++;
+    if (mid === n - 1) break;
+    lo = mid + 1;
+  }
+  return count;
+}
+
+let tight = true;
+for (let n = 1; n <= 4096; n++) {
+  if (worstCaseComparisons(n) !== Math.ceil(Math.log2(n + 1))) tight = false;
+}
+console.log("worst case = ceil(log2(n+1)) for n = 1..4096: " + tight);
+console.log("n = 1 000 000 needs " + worstCaseComparisons(1000000) + " comparisons");
+console.log("a capacity range 1..10^12 needs " + Math.ceil(Math.log2(1e12)) + " feasibility tests");`,
+    output: 'worst case = ceil(log2(n+1)) for n = 1..4096: true\nn = 1 000 000 needs 20 comparisons\na capacity range 1..10^12 needs 40 feasibility tests',
+  },
 ];
 
 export const snippetById = (id: string): Snippet | undefined => snippets.find((s) => s.id === id);
