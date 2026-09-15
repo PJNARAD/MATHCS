@@ -707,13 +707,34 @@ export const discreteFunctions: Concept[] = [
     next: ['function-basics'],
     content: [
       { t: 'intuition', text: 'A function assigns to each input exactly one output. In CS this is the entire contract of a pure function: given the same input, you always get the same output. The three questions — is it one-to-one? does it hit everything? is it invertible? — have direct computational meanings: can you recover the input from the output? can every value be produced? when can you safely invert a mapping?' },
+      { t: 'def', title: 'Function', text: 'A function $f: A \\to B$ assigns exactly one output $f(a) \\in B$ to every input $a \\in A$. The domain $A$ is where inputs come from; the codomain $B$ is the declared space of allowed outputs. A function is therefore a typed, single-valued relation.' },
+      { t: 'props', title: 'The three questions', items: [
+        { title: 'Injective?', text: 'Do distinct inputs stay distinguishable, or do collisions occur? This is the mathematical version of a lossless identifier.' },
+        { title: 'Surjective?', text: 'Does every element promised by the codomain actually occur? This is a coverage question.' },
+        { title: 'Bijective?', text: 'Are both answers yes? Then every output has exactly one input, so an inverse function exists.' },
+      ] },
+      { t: 'ex', title: 'Classifying a finite function', steps: [
+        'Let $f: \\{1,2,3\\} \\to \\{a,b,c,d\\}$ be $f(1)=a$, $f(2)=b$, and $f(3)=a$.',
+        'It is not injective because 1 and 3 collide at $a$.',
+        'It is not surjective because $c$ and $d$ are never hit.',
+        'Changing the codomain changes the second answer, but not the collision: the rule is still not injective.',
+      ], result: 'Always state the domain and codomain before classifying a function.' },
       { t: 'cs', items: [
         { area: 'Programs as functions', how: 'Pure functions are the backbone of functional programming and of reasoning about correctness.' },
         { area: 'Hashing', how: 'A hash function maps keys to a small range; injectivity fails (collisions), and the analysis is about how badly.' },
         { area: 'Encoding', how: 'Bijective encodings (run-length, Huffman codewords as prefix codes) are invertible by construction.' },
       ] },
     ],
-    practice: [],
+    practice: [
+      { id: 'fn-p1', q: 'For f: {1,2,3} → {a,b,c}, f(1)=a, f(2)=b, f(3)=a, which properties does f have?', type: 'mcq', diff: 'easy',
+        options: ['Injective only', 'Surjective only', 'Both injective and surjective', 'Neither'], correct: 3,
+        explain: 'Inputs 1 and 3 collide, so f is not injective; c is never hit, so it is not surjective.',
+      },
+      { id: 'fn-p2', q: 'Why must a function specify a codomain, rather than only a rule such as f(x)=x²?', type: 'short', diff: 'medium',
+        answer: 'The codomain says which outputs are allowed and determines whether the function is onto; x²: ℝ → ℝ is not surjective, while x²: ℝ → [0,∞) is.',
+        explain: 'Surjectivity is relative to the declared codomain.',
+      },
+    ],
   },
   {
     id: 'function-basics',
@@ -729,6 +750,18 @@ export const discreteFunctions: Concept[] = [
     content: [
       { t: 'def', title: 'Function', text: 'A function $f$ from set $A$ to set $B$ is a rule that assigns to each element $a \\in A$ exactly one element $f(a) \\in B$, written $f: A \\to B$. $A$ is the domain, $B$ the codomain, and the range (image) is $\\{ f(a) : a \\in A \\} \\subseteq B$.' },
       { t: 'p', text: 'A function is a special subset of the Cartesian product $A \\times B$: the graph $\\{(a, f(a)) : a \\in A\\}$, with the property that no two pairs share a first coordinate. "Exactly one output per input" is the defining constraint.' },
+      { t: 'props', title: 'Range versus codomain', items: [
+        { title: 'Codomain is part of the type', text: 'The rules $x^2: \\mathbb{R} \\to \\mathbb{R}$ and $x^2: \\mathbb{R} \\to [0,\\infty)$ have the same formula but different codomains.' },
+        { title: 'Range is observed', text: 'The range is determined by the rule and domain. It can be smaller than the codomain, but never larger.' },
+        { title: 'Why it matters', text: 'A decoder may be surjective onto the set of valid messages while not covering every possible byte string. The declared target tells us what “complete” means.' },
+      ] },
+      { t: 'thm', name: 'Counting functions', statement: 'If $|A|=m$ and $|B|=n$ for finite sets, then exactly $n^m$ functions $A \\to B$ exist.',
+        proofTitle: 'Proof (independent choices)',
+        proof: [
+          'For the first element of A there are n choices of output.',
+          'For the second there are again n choices, independently, and so on for all m inputs.',
+          'The product rule gives n × n × ⋯ × n = n^m functions.',
+        ] },
       { t: 'ex', title: 'Typing as codomain discipline', steps: [
         'Let $f: \\mathbb{Z} \\to \\{0, 1\\}$ be $f(n) = n \\bmod 2$ (parity).',
         'Domain: all integers. Codomain: $\\{0,1\\}$.',
@@ -748,6 +781,13 @@ export const discreteFunctions: Concept[] = [
       { id: 'fb-p2', q: 'Is the relation {(1,a), (2,b), (2,c)} a function from {1,2} to {a,b,c}?', type: 'truefalse', diff: 'easy', options: ['True', 'False'], correct: 1,
         explain: 'Input 2 maps to two outputs — violating "exactly one".',
       },
+      { id: 'fb-p3', q: 'How many functions are there from a 2-element set to a 3-element set?', type: 'numeric', diff: 'medium', answer: '9',
+        explain: 'Each of the two inputs independently chooses one of three outputs: 3² = 9.',
+      },
+      { id: 'fb-p4', q: 'For f: ℝ → ℝ defined by f(x)=x², is the range equal to the codomain?', type: 'truefalse', diff: 'easy', options: ['True', 'False'], correct: 1,
+        explain: 'The range is [0,∞), while the codomain is ℝ; negative reals are allowed but never hit.',
+        mistake: 'Treating “possible output” and “actually attained output” as the same set.',
+      },
     ],
   },
   {
@@ -763,6 +803,12 @@ export const discreteFunctions: Concept[] = [
     next: ['surjective-functions'],
     content: [
       { t: 'def', title: 'Injective', text: '$f: A \\to B$ is injective (one-to-one) if $f(a) = f(b) \\implies a = b$ for all $a, b \\in A$. Equivalently: no two distinct inputs share an output.' },
+      { t: 'intuition', text: 'An injective function leaves a recoverable fingerprint of its input. It may fail to use every available output, but it never erases the distinction between two inputs. To prove injectivity, start by assuming two outputs are equal and work backward until the inputs must be equal.' },
+      { t: 'props', title: 'Useful tests', items: [
+        { title: 'Horizontal-line test', text: 'For a real-valued graph, every horizontal line intersects an injective function at most once.' },
+        { title: 'Left cancellation', text: 'If f is injective, then f(a)=f(b) lets us cancel f and conclude a=b. This is why unique IDs support reliable lookup.' },
+        { title: 'Size restriction', text: 'For finite sets, an injection A→B requires |A|≤|B|. An injection can leave outputs unused, but cannot create extra distinct outputs.' },
+      ] },
       { t: 'thm', name: 'Finite counting criterion', statement: 'If $A, B$ are finite and $|A| > |B|$, then no injective $f: A \\to B$ exists.',
         proofTitle: 'Proof (pigeonhole)',
         proof: [
@@ -788,6 +834,12 @@ export const discreteFunctions: Concept[] = [
         explain: 'a² = b² with a,b ≥ 0 gives a = b. (Over ℤ it would fail: (−2)² = 2².) The domain matters.',
         mistake: 'Forgetting that the domain ℕ excludes negatives.',
       },
+      { id: 'inj-p3', q: 'Prove that the composition of two injective functions is injective.', type: 'proof', diff: 'medium', answer: 'If (g∘f)(a)=(g∘f)(b), injectivity of g gives f(a)=f(b), and injectivity of f gives a=b.',
+        explain: 'Apply the injectivity of the outer function first, then the inner function.',
+      },
+      { id: 'inj-p4', q: 'Can an injective function map a 5-element set into a 3-element set?', type: 'truefalse', diff: 'easy', options: ['True', 'False'], correct: 1,
+        explain: 'No: the pigeonhole principle forces two inputs to share an output.',
+      },
     ],
   },
   {
@@ -803,6 +855,19 @@ export const discreteFunctions: Concept[] = [
     next: ['bijective-functions'],
     content: [
       { t: 'def', title: 'Surjective', text: '$f: A \\to B$ is surjective (onto) if for every $b \\in B$ there exists $a \\in A$ with $f(a) = b$. Range = codomain.' },
+      { t: 'intuition', text: 'Surjectivity is a coverage guarantee. Imagine the codomain as a set of service endpoints: every endpoint has at least one route from the input space. Unlike injectivity, multiple inputs are allowed to land at the same output; the only forbidden situation is an output with no preimage.' },
+      { t: 'props', title: 'How to test “onto”', items: [
+        { title: 'Solve for a preimage', text: 'Take an arbitrary target b in the codomain and solve f(a)=b. If the solution a always lies in the domain, f is surjective.' },
+        { title: 'Finite size restriction', text: 'For finite sets, a surjection A→B requires |A|≥|B|. Several inputs may share one output, but every target needs at least one.' },
+        { title: 'Codomain matters', text: 'The same rule can be onto one codomain and not onto another. Always test the declared target, not an imagined one.' },
+      ] },
+      { t: 'thm', name: 'Finite equal-size shortcut', statement: 'If $A$ and $B$ are finite with $|A|=|B|$, then $f:A\\to B$ is injective if and only if it is surjective.',
+        proofTitle: 'Proof (pigeonhole)',
+        proof: [
+          'If f were injective but missed an element of B, its |A| distinct outputs would fit inside fewer than |B| slots — impossible.',
+          'If f were surjective but two inputs shared an output, fewer than |A| distinct outputs would cover all |B| targets — impossible.',
+          'Equal finite cardinalities turn either property into the other.',
+        ] },
       { t: 'ex', title: 'Parity is onto, doubling is not', steps: [
         'Parity $p: \\mathbb{Z} \\to \\{0,1\\}$: 0 is hit by 0, 1 by 1 — surjective.',
         'Doubling $d: \\mathbb{Z} \\to \\mathbb{Z}$: odd outputs are never hit — not surjective.',
@@ -820,6 +885,12 @@ export const discreteFunctions: Concept[] = [
       { id: 'sur-p2', q: 'Is f: ℕ → ℕ, f(n) = n + 1 surjective?', type: 'truefalse', diff: 'medium', options: ['True', 'False'], correct: 1,
         explain: '0 (or 1, depending on convention) has no preimage. Injective, not surjective.',
       },
+      { id: 'sur-p3', q: 'Is f: ℝ → [0,∞), f(x)=x² surjective?', type: 'truefalse', diff: 'easy', options: ['True', 'False'], correct: 0,
+        explain: 'For every y≥0, x=√y is a real preimage. The same rule is not onto ℝ because it never produces a negative value.',
+      },
+      { id: 'sur-p4', q: 'Prove that if g∘f is surjective, then g is surjective.', type: 'proof', diff: 'medium', answer: 'For any c in the codomain of g, surjectivity of g∘f gives an a with g(f(a))=c. Let b=f(a); then g(b)=c.',
+        explain: 'The composition can reach every target only if its final stage can reach every target.',
+      },
     ],
   },
   {
@@ -835,6 +906,17 @@ export const discreteFunctions: Concept[] = [
     next: ['inverse-functions'],
     content: [
       { t: 'def', title: 'Bijective', text: '$f: A \\to B$ is bijective if it is both injective and surjective. Bijections are exactly the functions with inverses.' },
+      { t: 'intuition', text: 'A bijection is a perfect relabeling: nothing is merged and nothing is left out. It lets us replace a difficult set with an equally large, easier-to-work-with set. That is why bijections prove counting formulas, justify lossless encodings, and turn “find the original” into a well-defined operation.' },
+      { t: 'props', title: 'Bijection toolkit', items: [
+        { title: 'Counting', text: 'If there is a bijection A↔B, then A and B have the same cardinality, even if their elements look completely different.' },
+        { title: 'Composition', text: 'The composition of bijections is a bijection, and the inverse of g∘f is f⁻¹∘g⁻¹ — undo the last step first.' },
+        { title: 'Finite sets', text: 'For finite sets, equal cardinality is enough to guarantee that an injective or surjective map is bijective.' },
+      ] },
+      { t: 'ex', title: 'A bijection between binary strings and subsets', steps: [
+        'Fix a set of positions {1,…,n}. Map a bit string b₁…bₙ to the subset of positions whose bit is 1.',
+        'The string 1010 maps to {1,3}; every subset has exactly one indicator string.',
+        'Therefore the 2ⁿ binary strings are in bijection with the 2ⁿ subsets of an n-element set.',
+      ], result: 'A bijection transfers a counting problem without changing the answer.' },
       { t: 'thm', name: 'Equal-size criterion', statement: 'If $A, B$ are finite, a bijection $A \\to B$ exists if and only if $|A| = |B|$.',
         proofTitle: 'Idea of proof',
         proof: [
@@ -856,6 +938,9 @@ export const discreteFunctions: Concept[] = [
       { id: 'bij-p1', q: 'Is the map "rotate the string left by one position" a bijection on all strings of length n over {a,b}?', type: 'truefalse', diff: 'medium', options: ['True', 'False'], correct: 0,
         explain: 'Rotation has an inverse (rotate right by one), so it is bijective; 2ⁿ strings pair with themselves.',
       },
+      { id: 'bij-p2', q: 'Give a bijection between the integers ℤ and the even integers 2ℤ.', type: 'short', diff: 'medium', answer: 'f(n)=2n, with inverse f⁻¹(2n)=n.',
+        explain: 'Doubling is injective and every even integer has the unique preimage half of it. Infinite sets can be bijective with proper subsets.',
+      },
     ],
   },
   {
@@ -870,6 +955,14 @@ export const discreteFunctions: Concept[] = [
     related: ['inverse-functions', 'linear-transformations', 'matrix-multiplication'],
     content: [
       { t: 'def', title: 'Composition', text: 'For $f: A \\to B$ and $g: B \\to C$, the composition $g \\circ f : A \\to C$ is $(g \\circ f)(a) = g(f(a))$. Read right to left: f first, then g.' },
+      { t: 'intuition', text: 'Composition is how small contracts become a larger contract. The output type of one function must fit the input type of the next. Thinking in types catches many pipeline errors before any values are computed: a function expecting a user record cannot be placed directly after one that returns only an integer.' },
+      { t: 'thm', name: 'Composition laws', statement: 'Function composition is associative: $h \\circ (g \\circ f) = (h \\circ g) \\circ f$ whenever the types line up. It is generally not commutative.',
+        proofTitle: 'Proof',
+        proof: [
+          'For any input a, the left side gives h(g(f(a))).',
+          'The right side gives the same nested evaluation h(g(f(a))).',
+          'Since the outputs agree for every input, the functions are equal; swapping f and g usually changes which value is fed where.',
+        ] },
       { t: 'props', items: [
         { title: 'Associativity', text: '$h \\circ (g \\circ f) = (h \\circ g) \\circ f$ — pipelines can be grouped freely.' },
         { title: 'Not commutative', text: 'In general $g \\circ f \\ne f \\circ g$.' },
@@ -880,6 +973,11 @@ export const discreteFunctions: Concept[] = [
         'The pipeline is $h \\circ g \\circ f$; each stage is a function on requests.',
         'Associativity means you can wrap stages in any grouping without changing behavior.',
       ], result: 'Functional composition in code is the same operation, with the same laws.' },
+      { t: 'ex', title: 'A typed numerical pipeline', steps: [
+        'Let $f(x)=x+3$ and $g(x)=2x$; both map $\\mathbb{R}\\to\\mathbb{R}$.',
+        'Then $(g\\circ f)(4)=g(7)=14$: add first, double second.',
+        'But $(f\\circ g)(4)=f(8)=11$: double first, add second.',
+      ], result: 'The same functions can be composed in both orders, but the results need not match.' },
       { t: 'cs', items: [
         { area: 'Graphics', how: 'Transforming a scene = composing rotation, scaling, translation maps — matrix multiplication represents composition.' },
         { area: 'Unix pipes', how: '`a | b | c` composes transforms on byte streams.' },
@@ -889,6 +987,12 @@ export const discreteFunctions: Concept[] = [
       { id: 'fc-p1', q: 'f(x) = 2x + 1, g(x) = x². Find (g ∘ f)(x) and (f ∘ g)(x).', type: 'short', diff: 'easy',
         answer: '(g∘f)(x) = (2x+1)² = 4x²+4x+1; (f∘g)(x) = 2x²+1. Different — composition is not commutative.',
         explain: 'Apply the inner function first.',
+      },
+      { id: 'fc-p2', q: 'If f: A→B and g: B→C are both injective, what can you conclude about g∘f?', type: 'truefalse', diff: 'easy', options: ['It is injective', 'It is surjective'], correct: 0,
+        explain: 'A collision after composition would be a collision for g, then for f; both are impossible.',
+      },
+      { id: 'fc-p3', q: 'Why is h∘(g∘f) equal to (h∘g)∘f?', type: 'proof', diff: 'medium', answer: 'Both send every a to h(g(f(a))). They differ only in parentheses, not in the order of evaluation.',
+        explain: 'Equality of functions is checked pointwise: compare their output on an arbitrary input.',
       },
     ],
   },
@@ -904,6 +1008,18 @@ export const discreteFunctions: Concept[] = [
     related: ['function-basics', 'linear-transformations'],
     content: [
       { t: 'def', title: 'Inverse function', text: 'If $f: A \\to B$ is bijective, its inverse $f^{-1}: B \\to A$ is the unique function with $f^{-1}(f(a)) = a$ for all $a$ and $f(f^{-1}(b)) = b$ for all $b$.' },
+      { t: 'intuition', text: 'An inverse runs a reversible process backward. There are two requirements hidden in that word: every target must have a way back (surjectivity), and it must have only one way back (injectivity). If either fails, an inverse may be a multi-valued relation or may be undefined for some outputs, but it is not a function.' },
+      { t: 'props', title: 'Finding and using inverses', items: [
+        { title: 'Swap and solve', text: 'Write y=f(x), swap x and y, then solve for y. The result is f⁻¹(x), with its domain and codomain exchanged.' },
+        { title: 'Graphical test', text: 'The graph of f⁻¹ is the reflection of the graph of f across y=x. A horizontal-line failure in f becomes a vertical-line failure in the inverse.' },
+        { title: 'Restriction can help', text: 'x² has no inverse on ℝ, but restricting its domain to [0,∞) makes it bijective onto [0,∞), with inverse √x.' },
+      ] },
+      { t: 'ex', title: 'Inverting an affine function', steps: [
+        'Start with $y=4x-7$. Add 7: $y+7=4x$.',
+        'Divide by 4: $x=(y+7)/4$.',
+        'Swap the variable name back: $f^{-1}(x)=(x+7)/4$.',
+        'Check: $f^{-1}(f(3))=(4\\cdot3-7+7)/4=3$.',
+      ], result: 'A composition check verifies both directions when the domains are stated correctly.' },
       { t: 'thm', name: 'Existence', statement: '$f$ has an inverse if and only if $f$ is bijective.',
         proofTitle: 'Proof (sketch)',
         proof: [
@@ -928,6 +1044,12 @@ export const discreteFunctions: Concept[] = [
       { id: 'inv-p2', q: 'Which function has no inverse on its stated domain: f: ℝ → ℝ, f(x) = |x|?', type: 'mcq', diff: 'medium',
         options: ['It has an inverse', 'It is not injective, so no inverse', 'It is not surjective, so no inverse', 'It is its own inverse'], correct: 1,
         explain: '|−1| = |1| = 1 — two inputs share an output, so no inverse function exists (restrict the domain to x ≥ 0 and it has one).',
+      },
+      { id: 'inv-p3', q: 'Find the inverse of f: [0,∞) → [0,∞), f(x)=x².', type: 'short', diff: 'easy', answer: 'f⁻¹(x)=√x.',
+        explain: 'The nonnegative domain removes the ± ambiguity: √(x²)=x for x≥0, and (√x)²=x for x≥0.',
+      },
+      { id: 'inv-p4', q: 'Why does a non-injective function fail to have a function inverse?', type: 'proof', diff: 'medium', answer: 'If f(a)=f(b) for distinct a and b, an inverse would have to send the same output back to both a and b, violating the one-output-per-input rule.',
+        explain: 'Collisions make reversal ambiguous.',
       },
     ],
   },

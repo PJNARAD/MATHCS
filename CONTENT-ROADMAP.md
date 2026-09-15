@@ -19,8 +19,8 @@ Refresh this document's numbers with `npm run audit` after any content change.
 |---|---|
 | Concepts | **243** (34 hub topics, 209 lessons) |
 | Domains | **15 / 15 published** |
-| Practice questions | **317** — 172 easy, 117 medium, **28 hard** |
-| Theorems with proofs | 63 `thm` blocks, 161 definition blocks |
+| Practice questions | **330** — 178 easy, 124 medium, **28 hard** |
+| Theorems with proofs | 66 `thm` blocks, 171 definition blocks |
 | CS-application call-outs | 189 `cs` blocks |
 | Interactive visualizations | 15 components, **24** used across content |
 | Runnable, output-verified snippets | **46** |
@@ -53,9 +53,9 @@ curriculum was promising lessons it never wrote (`network-flow → maximum-flow`
 
 ---
 
-## 2. Priority 0 — depth: 157 lessons are still stubs
+## 2. Priority 0 — depth: 152 lessons are still stubs
 
-**This is the single largest content gap.** 157 of 209 lessons have four or
+**This is the single largest content gap.** 152 of 209 lessons have four or
 fewer content blocks — typically a definition and one CS note. The lessons are
 correct but they are outlines, not teaching. The audit lists them by block count:
 
@@ -96,10 +96,10 @@ Realistic pace: 5–8 lessons per batch, `npm run verify` after each batch.
   Definitions-without-exercises is the most common complaint about math sites;
   `venn-diagrams`, `matrix-basics`, `gaussian-elimination`, `rank-nullity`,
   `svd`, `turing-machines` are the most conspicuous.
-- **Only 28 of 317 questions are hard.** The advanced half of the curriculum
+- **Only 28 of 330 questions are hard.** The advanced half of the curriculum
   (SVD, decidability, Lagrange multipliers, channel capacity) is under-tested.
-  Target ~15% hard, i.e. ~20 more hard questions.
-- **Almost no metadata**: 20 of 317 questions have a `mistake` field (the
+  Target ~15% hard, i.e. ~22 more hard questions.
+- **Almost no metadata**: 21 of 330 questions have a `mistake` field (the
   "common wrong answer" hint) and **0** use `related`. Both are rendered by the
   practice component and turn a quiz into teaching.
 - **No interleaved practice.** Every question lives inside its lesson. A
@@ -140,10 +140,10 @@ Reuse the existing `VizShell` and visual tokens so dark mode keeps working;
 Content that is invisible to readers is content that does not exist. Three
 high-leverage pages can be generated **from data already in the repo**:
 
-1. **`/glossary`** — every `def` block (161 of them) as a browsable, searchable
+1. **`/glossary`** — every `def` block (171 of them) as a browsable, searchable
    dictionary with a link back to its lesson. Also feeds the command palette
    (which currently indexes only pages).
-2. **`/theorem-index`** — the 63 `thm` blocks with statements and proofs, grouped
+2. **`/theorem-index`** — the 66 `thm` blocks with statements and proofs, grouped
    by domain, cross-linked to prerequisites. This is the site's "why the
    mathematics is true" library.
 3. **`/applications`** — the 189 `cs` blocks as a "where is this used?" index,
@@ -219,7 +219,7 @@ size of `probability` (16+) before any brand-new domain is considered.
 - **Review the copied-suffix lessons** (`-calc`, `-prob`, `-stat`) — they look
   like accidental forks left by earlier authoring passes.
 - **Reference metadata**: `mistake` and `related` fields on questions, and
-  `tags` on concepts, are almost unused (20 and 0 of 317).
+  `tags` on concepts, are almost unused (21 and 0 of 330).
 - **Difficulty balance across levels**: 48 foundational / 135 core / 60 advanced
   is healthy, but several `advanced` lessons have thin content (a level label
   that content does not back up).
@@ -230,7 +230,7 @@ size of `probability` (16+) before any brand-new domain is considered.
 
 If the goal is the largest visible improvement per unit of writing:
 
-1. **Glossary + theorem index pages** (~1 session, generated from 224 existing
+1. **Glossary + theorem index pages** (~1 session, generated from 237 existing
    `def`/`thm` blocks) — new surfaces with no new authoring.
 2. **Practice for the 42 lesson gaps** (~1 session) — every lesson then teaches
    and tests.
