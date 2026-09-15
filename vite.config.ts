@@ -12,5 +12,16 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 1600,
+    rollupOptions: {
+      output: {
+        // KaTeX and the framework change far less often than the content, so
+        // splitting them keeps the content bundle small and cacheable.
+        manualChunks(id: string) {
+          if (id.includes('node_modules/katex')) return 'katex';
+          if (/node_modules\/(react|react-dom|react-router|react-router-dom|scheduler)/.test(id)) return 'vendor';
+          return undefined;
+        },
+      },
+    },
   },
 });

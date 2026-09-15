@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { Search } from 'lucide-react';
 import { domainsWithContent } from './lib/concepts';
 import { domains } from './data/domains';
 import { HomePage } from './pages/Home';
@@ -8,6 +9,8 @@ import { ConceptPage } from './pages/ConceptPage';
 import { FieldsPage, FieldDetailPage } from './pages/FieldsPage';
 import { PathsPage, PathDetailPage } from './pages/PathsPage';
 import { BooksPage } from './pages/BooksPage';
+import { PlaygroundPage } from './pages/PlaygroundPage';
+import { CommandPalette } from './components/CommandPalette';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -21,6 +24,7 @@ const NAV = [
   { to: '/fields', label: 'CS Fields' },
   { to: '/paths', label: 'Paths' },
   { to: '/books', label: 'Books' },
+  { to: '/playground', label: 'Playground' },
 ];
 
 function NavItem({ to, label }: { to: string; label: string }) {
@@ -51,6 +55,8 @@ function Brand() {
 }
 
 export function App() {
+  const [paletteOpen, setPaletteOpen] = useState(false);
+
   return (
     <div className="min-h-screen flex flex-col">
       <ScrollToTop />
@@ -58,6 +64,16 @@ export function App() {
         <div className="mx-auto max-w-wide px-4 h-14 flex items-center gap-3">
           <Brand />
           <nav className="ml-auto flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              className="mr-1 hidden items-center gap-2 border border-line2 bg-white px-2.5 py-1.5 text-xs text-ink3 transition-colors hover:border-ink3 hover:text-ink sm:flex"
+              aria-label="Search (Command or Control + K)"
+            >
+              <Search size={13} />
+              Search
+              <kbd className="border border-line2 bg-paper2 px-1 font-mono text-[10px]">⌘K</kbd>
+            </button>
             {NAV.map((n) => (
               <NavItem key={n.to} {...n} />
             ))}
@@ -75,6 +91,7 @@ export function App() {
           <Route path="/paths" element={<PathsPage />} />
           <Route path="/path/:id" element={<PathDetailPage />} />
           <Route path="/books" element={<BooksPage />} />
+          <Route path="/playground" element={<PlaygroundPage />} />
           <Route
             path="*"
             element={
@@ -99,6 +116,7 @@ export function App() {
           </span>
         </div>
       </footer>
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </div>
   );
 }
