@@ -1458,6 +1458,39 @@ console.log("n = 1 000 000 needs " + worstCaseComparisons(1000000) + " compariso
 console.log("a capacity range 1..10^12 needs " + Math.ceil(Math.log2(1e12)) + " feasibility tests");`,
     output: 'worst case = ceil(log2(n+1)) for n = 1..4096: true\nn = 1 000 000 needs 20 comparisons\na capacity range 1..10^12 needs 40 feasibility tests',
   },
+  {
+    id: 'lattice-d36',
+    conceptId: 'lattice-logic',
+    title: 'Meet and join over the divisors of 36',
+    blurb: 'gcd is the meet, lcm is the join; the Hasse diagram is the prime-exponent grid, and a cover multiplies by exactly one prime.',
+    code: `function divisors(n) {
+  const out = [];
+  for (let i = 1; i * i <= n; i++) {
+    if (n % i === 0) { out.push(i); if (i !== n / i) out.push(n / i); }
+  }
+  return out.sort((a, b) => a - b);
+}
+const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
+const lcm = (a, b) => (a / gcd(a, b)) * b;
+
+const D = divisors(36);
+console.log("D36 = " + D.join(" "));
+
+// rank of a divisor = total number of prime factors; a cover multiplies by exactly one prime
+const rankOf = (d) => { let r = 0; for (const p of [2, 3]) while (d % p === 0) { d /= p; r++; } return r; };
+const rows = [[], [], [], [], []];
+for (const d of D) rows[rankOf(d)].push(d);
+for (let r = 4; r >= 0; r--) console.log("rank " + r + ": " + rows[r].join("  "));
+
+const covers = [];
+for (const a of D) for (const p of [2, 3]) if (36 % (a * p) === 0) covers.push(a + "->" + a * p);
+console.log("cover edges: " + covers.length);
+
+const [x, y] = [12, 18];
+console.log(x + " meet " + y + " = gcd = " + gcd(x, y));
+console.log(x + " join " + y + " = lcm = " + lcm(x, y));`,
+    output: 'D36 = 1 2 3 4 6 9 12 18 36\nrank 4: 36\nrank 3: 12  18\nrank 2: 4  6  9\nrank 1: 2  3\nrank 0: 1\ncover edges: 12\n12 meet 18 = gcd = 6\n12 join 18 = lcm = 36',
+  },
 ];
 
 export const snippetById = (id: string): Snippet | undefined => snippets.find((s) => s.id === id);

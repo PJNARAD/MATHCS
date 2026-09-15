@@ -379,6 +379,8 @@ export const discreteRelations: Concept[] = [
         '**Divisibility on positive integers**, ordered by a | b: join = lcm, meet = gcd, $\\bot = 1$. (There is no top in the infinite lattice — lcm of everything is unbounded — so it is a lattice but not complete.)',
         '**Propositions up to equivalence**, ordered by ⇒: join = OR, meet = AND, $\\bot = \\text{false}$, $\\top = \\text{true}$. This is a Boolean algebra — a lattice where every element has a complement, which is exactly what makes logic gates and De Morgan’s laws tick.',
       ] },
+      { t: 'p', text: 'Draw a divisor lattice as a Hasse diagram — edges point upward, transitive shortcuts omitted — and the structure gets concrete fast: **D₃₆**, the divisors of 36 = 2²·3², is a 3×3 grid; **D₃₀**, the divisors of 30 = 2·3·5, is the cube B₃; and **N₅**, the pentagon, is the smallest lattice in which the distributive law fails. In the explorer below, click two elements: their meet lights up green, their join gold, and the blue edges span exactly the interval between them.' },
+      { t: 'viz', id: 'lattice', props: { preset: 'd36' } },
       { t: 'thm', name: 'Knaster–Tarski fixpoint theorem', statement: 'Let L be a complete lattice and f : L → L monotone (a ≤ b implies f(a) ≤ f(b)). Then f has a least fixpoint, and it is the least upper bound of the chain ⊥ ≤ f(⊥) ≤ f(f(⊥)) ≤ ⋯.',
         proofTitle: 'Proof sketch',
         proof: [

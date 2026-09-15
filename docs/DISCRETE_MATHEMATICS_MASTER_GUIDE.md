@@ -492,6 +492,44 @@ Cin -----+-------)-------->|         |
 
 ---
 
+### 9.6 Hasse Diagram: Divisibility on $D_{30}$ (the Boolean lattice $B_3$)
+
+Since $30 = 2 \cdot 3 \cdot 5$ is square-free, each divisor is a subset of $\{2, 3, 5\}$: the lattice $D_{30}$ is isomorphic to the powerset lattice $\mathcal{P}(\{2,3,5\})$ ordered by inclusion — a cube, $B_3$.
+
+```
+                      30 (Greatest element / Top ⊤)
+                     /  |  \
+                    /   |   \
+                   6    10   15
+                  / / \ | / \ \
+                 2       3       5
+                    \    |    /
+                     \   |   /
+                      1 (Least element / Bottom ⊥)
+```
+
+Edges: each cover multiplies by exactly one prime ($1 \to 2, 3, 5$; $2 \to 6, 10$; $3 \to 6, 15$; $5 \to 10, 15$; $6, 10, 15 \to 30$). Meet = gcd, join = lcm. Every element has a **unique complement** (its opposite corner: $d \vee (30/d) = 30$ and $d \wedge (30/d) = 1$), which is what makes $B_3$ a Boolean algebra.
+
+### 9.7 Hasse Diagram: The Pentagon Lattice $N_5$
+
+$N_5$ is the smallest **non-distributive** lattice: chains $0 < a < 1$ and $0 < b < c < 1$, with $a$ incomparable with $b$ and $c$. Its five cover edges $0\!-\!a$, $0\!-\!b$, $b\!-\!c$, $c\!-\!1$, $a\!-\!1$ form the pentagon cycle $0 - a - 1 - c - b - 0$ that gives it the name.
+
+```
+                    1 (Greatest element / Top ⊤)
+                   /  |
+                  /   |
+                 a    c
+                 |    |
+                 |    b
+                  \   |
+                   \  |
+                    0 (Least element / Bottom ⊥)
+```
+
+The distributive law fails here: $c \wedge (a \vee b) = c \wedge 1 = c$, but $(c \wedge a) \vee (c \wedge b) = 0 \vee b = b \neq c$. Together with $M_3$ (the diamond), this is Birkhoff's test: a lattice is distributive iff it contains neither $N_5$ nor $M_3$ as a sublattice.
+
+---
+
 ## 10. Step-by-Step Examples
 
 ### Example 10.1: Proof by Mathematical Induction
@@ -797,6 +835,7 @@ Below is an engine implemented in TypeScript/JavaScript that models the core dis
 1. **Propositional Logic AST Evaluator & Truth Table Generator** (with Tautology/Contradiction classification).
 2. **Binary Relation Analyzer & Transitive Closure** (Warshall's Algorithm).
 3. **Divide-and-Conquer Recurrence Analyzer** (Master Theorem Solver).
+4. **Lattice Explorer** (divisor lattices $D_{36}$ / $D_{30}$, the pentagon $N_5$, and a distributivity checker).
 
 ```typescript
 // ============================================================================
@@ -980,6 +1019,99 @@ export function solveMasterTheorem(a: number, b: number, d: number) {
     };
   }
 }
+
+// 4. LATTICE EXPLORER: DIVISOR LATTICES D36 / D30, PENTAGON N5
+export interface Lattice {
+  elements: string[];           // display labels
+  covers: [number, number][];   // Hasse edges [lower, upper]
+  rank: number[];               // height above the bottom element
+  meet: number[][];             // meet[i][j] -> element index (a_i ∧ a_j)
+  join: number[][];             // join[i][j] -> element index (a_i ∨ a_j)
+}
+
+const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+const lcm = (a: number, b: number): number => (a / gcd(a, b)) * b;
+const isPrime = (m: number): boolean => {
+  if (m < 2) return false;
+  for (let f = 2; f * f <= m; f++) if (m % f === 0) return false;
+  return true;
+};
+/** Total number of prime factors, counted with multiplicity. */
+const bigOmega = (d: number): number => {
+  let r = 0, m = d, p = 2;
+  while (m > 1) {
+    while (m % p === 0) { m /= p; r++; }
+    p++;
+  }
+  return r;
+};
+
+/**
+ * Divisor lattice D_n. A cover is exactly one prime factor added, so the rank
+ * of a divisor is its total number of prime factors. Meet is gcd, join is lcm.
+ */
+export function divisorLattice(n: number): Lattice {
+  const divs: number[] = [];
+  for (let d = 1; d <= n; d++) if (n % d === 0) divs.push(d);
+  const idx = new Map(divs.map((d, i) => [d, i]));
+  const rank = divs.map(bigOmega);
+  const covers: [number, number][] = [];
+  for (const lo of divs) {
+    for (const hi of divs) {
+      if (hi > lo && hi % lo === 0 && isPrime(hi / lo)) {
+        covers.push([idx.get(lo)!, idx.get(hi)!]);
+      }
+    }
+  }
+  const meet: number[][] = [];
+  const join: number[][] = [];
+  for (let i = 0; i < divs.length; i++) {
+    meet.push([]); join.push([]);
+    for (let j = 0; j < divs.length; j++) {
+      meet[i].push(idx.get(gcd(divs[i], divs[j]))!);
+      join[i].push(idx.get(lcm(divs[i], divs[j]))!);
+    }
+  }
+  return { elements: divs.map(String), covers, rank, meet, join };
+}
+
+/** The pentagon N5: chains 0 < a < 1 and 0 < b < c < 1; a incomparable to b, c. */
+export const N5: Lattice = {
+  elements: ['0', 'a', 'b', 'c', '1'],
+  covers: [[0, 1], [0, 2], [2, 3], [3, 4], [1, 4]],
+  rank: [0, 1, 1, 2, 3],
+  meet: [
+    [0, 0, 0, 0, 0],
+    [0, 1, 0, 0, 1],
+    [0, 0, 2, 2, 2],
+    [0, 0, 2, 3, 3],
+    [0, 1, 2, 3, 4],
+  ],
+  join: [
+    [0, 1, 2, 3, 4],
+    [1, 1, 4, 4, 4],
+    [2, 4, 2, 3, 4],
+    [3, 4, 3, 3, 4],
+    [4, 4, 4, 4, 4],
+  ],
+};
+
+/** Birkhoff distributivity test: a ∧ (b ∨ c) = (a ∧ b) ∨ (a ∧ c) for all triples. */
+export function isDistributive(L: Lattice): boolean {
+  const n = L.elements.length;
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      for (let k = 0; k < n; k++) {
+        if (L.meet[i][L.join[j][k]] !== L.join[L.meet[i][j]][L.meet[i][k]]) return false;
+      }
+    }
+  }
+  return true;
+}
+
+// isDistributive(divisorLattice(36))  // true  — the 3x3 grid
+// isDistributive(divisorLattice(30))  // true  — the cube B3
+// isDistributive(N5)                  // false — c ∧ (a ∨ b) = c, but (c ∧ a) ∨ (c ∧ b) = b
 ```
 
 ---
