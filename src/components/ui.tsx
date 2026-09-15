@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import * as Lucide from 'lucide-react';
 import { MathText } from './TeX';
 import type { Block, Concept, Difficulty, Level, PracticeQ } from '../data/types';
-import { getConcept } from '../lib/concepts';
+import { conceptInfo } from '../lib/concept-loader';
 import { useStore } from '../lib/store';
 import { useToast } from './Toast';
 
@@ -84,7 +84,7 @@ export function DiffBadge({ diff }: { diff: Difficulty }) {
 
 /** Link to a concept, or a muted "coming soon" chip when the content isn't in this build. */
 export function ConceptLink({ id, className }: { id: string; className?: string }) {
-  const c = getConcept(id);
+  const c = conceptInfo(id);
   if (!c) {
     return (
       <span className="chip cursor-default opacity-60" title="Content not yet published in this build">

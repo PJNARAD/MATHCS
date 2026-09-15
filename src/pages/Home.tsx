@@ -5,18 +5,18 @@ import { domains } from '../data/domains';
 import { fields } from '../data/fields';
 import { paths } from '../data/paths';
 import { books } from '../data/books';
-import { allConcepts, domainsWithContent, getConcept, totalConcepts } from '../lib/concepts';
+import { conceptInfo, domainsWithContent, totalConcepts, totalPracticeCount } from '../lib/concept-loader';
 import { Icon } from '../components/ui';
 import { useStore } from '../lib/store';
 
 export function HomePage() {
-  const practiceCount = allConcepts.reduce((s, c) => s + c.practice.length, 0);
+  const practiceCount = totalPracticeCount;
   const { state } = useStore();
   const recentConcept = state.recent
-    .map((entry) => getConcept(entry.id))
+    .map((entry) => conceptInfo(entry.id))
     .find((concept): concept is NonNullable<typeof concept> => Boolean(concept));
   const savedConcept = state.bookmarks
-    .map((conceptId) => getConcept(conceptId))
+    .map((conceptId) => conceptInfo(conceptId))
     .find((concept): concept is NonNullable<typeof concept> => Boolean(concept));
   const resume = recentConcept ?? savedConcept;
 

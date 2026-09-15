@@ -18,6 +18,7 @@ Refresh this document's numbers with `npm run audit` after any content change.
 | | |
 |---|---|
 | Concepts | **243** (34 hub topics, 209 lessons) |
+| Route payload | **no route downloads lesson bodies** (see §8) |
 | Domains | **15 / 15 published** |
 | Practice questions | **353** — 182 easy, 135 medium, **36 hard** |
 | Theorems with proofs | 74 `thm` blocks, 174 definition blocks |
@@ -259,58 +260,76 @@ content volume of each topic, so the table doubles as a thinness ranking.
 | ✅ done | **Boolean algebra** | 4 | 1 133 → **5 089 words**, 17 → 33 blocks, 7 → 18 questions | the postulates and law table, minterm theorem, De Morgan from uniqueness of complements, {NAND} completeness, consensus + K-map work, 3 snippets |
 | 1 | **Recursion** | 5 (`recursive-definitions`, `recurrence-relations`, `solving-recurrences`, `recursion-trees`, `dynamic-programming`) | 1 494 words | structural-induction proofs, Master-Theorem case proofs, characteristic equations, recursion-tree sums, DP correctness and overlapping-subproblem criteria |
 | 2 | **Asymptotics** | 4 (`asymptotic-notation`, `asymptotic-properties`, `growth-rates`, `binary-search`) | 2 130 words | limit-based proofs, counterexamples for the common errors, lower-bound arguments, the loop invariant and "binary search on the answer" |
+| ✅ done | **Concepts-per-domain split** | 15 domain chunks + generated index | 580.79 kB shared chunk → 114.93 kB index + lazy domains | every route stops downloading lesson bodies (see below) |
 
 `lattice-logic` (880 words) sits under Relations and was already at depth, so it
 was left alone apart from removing its stray `*italic*` markup, which the
 content renderer does not support (use `**bold**` or plain prose). Both finished
 batches are also the two topics that now have a snippet per lesson.
 
-### Concepts-per-domain splitting (this batch, after Boolean algebra)
+### Concepts-per-domain splitting — done in this batch
 
-The bundle is lazy-loaded per route, but the concept registry is not: every
-lazy page that touches a concept imports `src/lib/concepts.ts`, which
-statically pulls all 19 domain files. Measured with `npm run build` after the
-Boolean algebra batch — the chunk has already grown with each content pass,
-which is the whole argument for splitting it now:
+**The problem.** The bundle was lazy-loaded per route, but the concept registry
+was not: every page that touched a concept imported `src/lib/concepts.ts`, which
+statically pulled all nineteen domain files into one shared chunk. That chunk was
+556.70 kB (190.07 kB gzip) after the Relations pass and 580.79 kB (198.41 kB
+gzip) after Boolean algebra — +24 kB from one batch of five lessons, paid for by
+every route, including `/books` and `/playground`, which need none of it.
+
+**The split.**
+
+| Before | After |
+|---|---|
+| `concepts-*.js` 580.79 kB / 198.41 kB gzip, imported by every route | `concept-index-*.js` **114.93 kB / 27.47 kB gzip**, no lesson content |
+| — | 15 domain chunks (6.4 kB → 110.2 kB raw), fetched one per concept page |
+| every route downloaded all lesson bodies | **no route downloads any lesson body** |
+
+Measured with `npm run build` + `node scripts/route-size.mjs`:
 
 ```
-dist/assets/concepts-*.js   580.79 kB │ gzip: 198.41 kB   ← shared by nearly every route
-dist/assets/ui-*.js         779.36 kB │ gzip: 138.12 kB
-dist/assets/snippets-*.js    46.65 kB │ gzip:  16.40 kB
-
-                              ↑ 556.70 kB before the Boolean pass — +24 kB from one
-                                batch of five lessons. Three more batches would add
-                                roughly that much again, for every route.
+/books                    downloads 305.5 kB │ gzip │ lesson bodies in download: none
+/playground               downloads 186.8 kB │ gzip │ lesson bodies in download: none
+/paths                    downloads 311.6 kB │ gzip │ lesson bodies in download: none
+/domain/discrete          downloads 302.8 kB │ gzip │ lesson bodies in download: none
+/concept/partial-orders   downloads 330.3 kB │ gzip │ lesson bodies in download: none
+                          + one domain chunk fetched at render time (discrete-2)
 ```
 
-Every future content batch makes that shared chunk bigger, and it is paid for
-by routes that need none of it (`/books`, `/playground`, the command palette's
-index). Splitting it is now cheaper than after three more batches.
+**How it works.**
 
-The shape of the work:
+1. `src/lib/concept-index-file.ts` — the index shape (`ConceptIndexEntry`) and
+   the serializer that turns real content into the generated file.
+2. `src/data/concept-index.ts` — **generated** by `npm run index:write`
+   (243 entries: id, title, domain, level, summary, topic/parent, csFields,
+   prerequisites/related/next, practice and block counts). `npm test` and
+   `npm run index:verify` both fail if it goes stale.
+3. `src/lib/concept-loader.ts` — the shipped access path: `conceptInfo(id)` for
+   titles/summaries, `conceptsInDomain` / `topicsInDomain` / `childrenOfTopic` /
+   `standaloneInDomain` for the domain pages, and the lazy body readers
+   `readConcept(id)` (suspends, React Suspense) and `loadConcept(id)` (promise).
+   The domain modules are reached only through `import('../data/concepts/…')`,
+   with an explicit loader map so chunk names stay stable.
+4. `ConceptPage` renders `readConcept(id)`; SSR streams it correctly because
+   `renderToPipeableStream`'s `onAllReady` waits for the thrown promise, so a
+   lesson can still never render as an empty shell — `tests/smoke.tsx` keeps
+   asserting that. `DomainPage` needs no async at all now: it reads the index.
+5. `src/lib/concepts.ts` stays as the static registry for tests and scripts, and
+   a guard test fails if any module under `src/` imports it.
 
-1. Add a generated **concept index** (`id → {title, domain, level, summary,
-   prerequisites, related, next, hasPractice, hasSnippet}`) emitted by a script
-   into a small `src/data/concept-index.ts`. The audit script already walks the
-   same fields, so the generator can be extracted from `scripts/audit.ts`.
-2. Point `ConceptLink`, the command palette, search, `/paths`, `/fields` and the
-   home page at the index — they need titles and links, not lesson bodies.
-3. Keep the domain files as the content source and load them through
-   `import('../data/concepts/<domain>')`, resolved by an explicit
-   `Record<domain, () => Promise<Concept[]>>` map (Vite cannot glob into a
-   static `import()` anyway, and the explicit map keeps the chunk names stable).
-4. `ConceptPage` and `DomainPage` become async: `useEffect` + cache, with the
-   existing `Suspense` fallback and `Loading lesson` copy as the pending state.
-   `getConcept(id)` stays synchronous *against the loaded cache* so the UI layer
-   does not need a refactor — only the two pages that need bodies become async.
-5. Tests: `tests/run.ts`, `tests/smoke.tsx` and `scripts/audit.ts` keep importing
-   the static registry (they are not shipped), so they need only a renamed import
-   path. Add one guard test that a domain module is not imported by
-   `concept-index.ts`.
+**Guardrails added** (18 new assertions in `tests/run.ts`): the committed index
+matches a fresh serialization; ids/titles/domains/levels/counts agree with the
+registry; no shipped module imports the registry; the shipped index imports no
+domain module; the loader uses only dynamic `import()`; every domain in the index
+has a loader and no loader is dead weight; `readConcept` suspends before load,
+returns synchronously after, and returns `undefined` for unknown ids; every
+domain loads a body whose title and block count match its index entry.
 
-Success criterion: `/books` and `/playground` no longer download any lesson
-bodies; `/concept/<id>` downloads one domain file instead of all nineteen; the
-concepts chunk in `npm run build` splits into 19 domain chunks plus the index.
+**What the split did not fix.** `ui-*.js` is now the heaviest shared chunk
+(779.34 kB / 138.12 kB gzip) and every route pays it, because `ui.tsx` holds both
+the shell pieces (`Icon`, chips, `ConceptLink`) and the lesson renderer
+(`BlockView`, `Practice`). Splitting that module is the next size win — a
+`/books` visitor does not need the block renderer — and it is a smaller, purely
+mechanical change than this one was.
 
 ### Other backlog (unchanged)
 
@@ -324,7 +343,11 @@ concepts chunk in `npm run build` splits into 19 domain chunks plus the index.
    fifth, since the Relations lessons are the only topic of the four passes
    with no interactivity at all.
 4. **Depth pass on number-theory and linear-algebra** (8 + 20 thin lessons) —
-   the two domains that sit on the most learning paths.
+   the two domains that sit on the most learning paths, and the two that now
+   also carry the heaviest lazy chunks (number-theory 105 kB, linear-algebra
+   26 kB raw).
+5. **Split `ui.tsx`** — the shell pieces from the lesson renderer (see above).
+   It is the largest remaining shared download at 138 kB gzip per route.
 
 Guardrails to keep: every batch ends with `npm run verify` (229 tests, 52
 verified snippets, SSR smoke) and `npm run audit` must report **0 dangling

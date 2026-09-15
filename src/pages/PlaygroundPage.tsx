@@ -5,7 +5,7 @@ import { snippets } from '../data/snippets';
 import { runSnippet } from '../lib/runner';
 import type { RunResult } from '../lib/runner';
 import { domains } from '../data/domains';
-import { getConcept } from '../lib/concepts';
+import { conceptInfo } from '../lib/concept-loader';
 import { useStore } from '../lib/store';
 
 // ---------------------------------------------------------------------------
@@ -38,7 +38,7 @@ export function PlaygroundPage() {
     const q = query.trim().toLowerCase();
     const list = q
       ? snippets.filter((s) =>
-          [s.title, s.blurb, s.id, s.conceptId, getConcept(s.conceptId)?.title ?? ''].join(' ').toLowerCase().includes(q),
+          [s.title, s.blurb, s.id, s.conceptId, conceptInfo(s.conceptId)?.title ?? ''].join(' ').toLowerCase().includes(q),
         )
       : snippets;
     return list;
@@ -47,7 +47,7 @@ export function PlaygroundPage() {
   const grouped = useMemo(() => {
     const byDomain = new Map<string, typeof snippets>();
     for (const s of filtered) {
-      const domain = getConcept(s.conceptId)?.domain ?? 'other';
+      const domain = conceptInfo(s.conceptId)?.domain ?? 'other';
       const list = byDomain.get(domain) ?? [];
       list.push(s);
       byDomain.set(domain, list);
@@ -57,7 +57,7 @@ export function PlaygroundPage() {
   }, [filtered]);
 
   const domainName = (id: string): string => domains.find((d) => d.id === id)?.short ?? id;
-  const concept = snippet ? getConcept(snippet.conceptId) : undefined;
+  const concept = snippet ? conceptInfo(snippet.conceptId) : undefined;
 
   const run = () => {
     if (!snippet) return;
@@ -122,7 +122,7 @@ export function PlaygroundPage() {
                         <span className={active ? 'font-medium' : ''}>{s.title}</span>
                         {runs > 0 && <span className="font-mono text-[10px] text-ink4">{runs}×</span>}
                       </span>
-                      <span className="mt-0.5 block truncate text-[11px] text-ink3">{getConcept(s.conceptId)?.title}</span>
+                      <span className="mt-0.5 block truncate text-[11px] text-ink3">{conceptInfo(s.conceptId)?.title}</span>
                     </button>
                   );
                 })}
