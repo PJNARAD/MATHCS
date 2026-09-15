@@ -23,8 +23,8 @@ Refresh this document's numbers with `npm run audit` after any content change.
 | Practice questions | **374** — 185 easy, 144 medium, **45 hard** |
 | Theorems with proofs | 85 `thm` blocks, 177 definition blocks |
 | CS-application call-outs | 191 `cs` blocks |
-| Interactive visualizations | 15 components, **26** used across content |
-| Runnable, output-verified snippets | **60** |
+| Interactive visualizations | 16 components, **27** used across content |
+| Runnable, output-verified snippets | **61** |
 | Learning paths / CS fields / books | 14 / 30 / 24 |
 | Dangling cross-references | **0** |
 
@@ -139,9 +139,9 @@ Relations lessons are the current upper end of that range.
 
 ---
 
-## 4. Priority 2 — interactivity: 217 of 243 concepts have no visualization
+## 4. Priority 2 — interactivity: 216 of 243 concepts have no visualization
 
-Only 15 visualization components exist, and the tests require every registered
+Only 16 visualization components exist, and the tests require every registered
 one to be reachable from content. Best next candidates, each tied to concepts
 that already exist and are heavily linked:
 
@@ -282,6 +282,19 @@ content renderer does not support (use `**bold**` or plain prose). The first fou
 finished batches (Relations, Boolean algebra, Recursion, and the split itself)
 are all in this PR; the three depth topics each ended with at least one snippet
 per lesson.
+
+### Lattice interactivity — done in a follow-up PR
+
+The `lattice-logic` lesson now carries the **lattice explorer**: an interactive
+Hasse-diagram component with three presets — **D₃₆** (the 3×3 exponent grid of
+the divisors of 36 = 2²·3²), **D₃₀** (the cube B₃ of the divisors of
+30 = 2·3·5), and **N₅** (the pentagon, the smallest non-distributive lattice).
+Clicking two elements computes their meet (gcd) and join (lcm) from the same
+pure functions in `src/lib/vizmath.ts` the unit tests cover, and highlights the
+interval between them. A verified playground snippet (`lattice-d36`) rebuilds
+the grid, its 12 cover edges, and a meet/join pair; the master guide's diagram
+section (§9) gained the D₃₀ and N₅ Hasse diagrams, and its engine section
+(§15) a fourth entry with a Birkhoff distributivity checker.
 
 ### Concepts-per-domain splitting — done in this batch
 

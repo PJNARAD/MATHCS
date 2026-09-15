@@ -8,6 +8,7 @@
 import type { Mat2, Vec2 } from './linalg';
 import { eigen2, det2, mat2Vec } from './linalg';
 import { histogram, mean, std, normalPdf, mulberry32 } from './stat';
+import { divisors, factorize, gcd, lcm } from './numbertheory';
 
 /** A uniform-[0,1) generator, as returned by mulberry32. */
 export type RNG = () => number;
@@ -568,3 +569,226 @@ export function turnDegrees(m: Mat2, v: Vec2): number {
   if (na < 1e-12 || nb < 1e-12) return 0;
   return (Math.acos(Math.max(-1, Math.min(1, dot / (na * nb)))) * 180) / Math.PI;
 }
+
+// ===========================================================================
+// 14. Lattices — Hasse diagrams, meets, joins
+// ===========================================================================
+//
+// A lattice is a poset in which every pair has a join (least upper bound) and
+// a meet (greatest lower bound). The presets are the three classic small
+// lattices: D36 (divisors of 36 = 2^2*3^2, a 3x3 exponent grid), D30 (divisors
+// of 30 = 2*3*5, the Boolean lattice B3, a cube), and N5 (the pentagon, the
+// smallest non-distributive lattice).
+//
+// Divisor lattices are built generically: a divisor of n is a vector of prime
+// exponents, its rank is the total number of prime factors counted with
+// multiplicity, and a cover step multiplies by exactly one prime. Meet is
+// gcd, join is lcm.
+
+export interface LatticeElement {
+  label: string;
+  /** normalized horizontal position in [0, 1] */
+  x: number;
+  /** normalized vertical position in [0, 1], 0 = bottom */
+  y: number;
+}
+
+export interface LatticePreset {
+  id: string;
+  label: string;
+  /** short label for the preset chips */
+  short: string;
+  kind: string;
+  /** display names of the lattice operations, e.g. ['gcd', 'lcm'] */
+  ops: [string, string];
+  elements: LatticeElement[];
+  /** Hasse cover edges as [lower, upper] index pairs */
+  covers: [number, number][];
+  /** meet[i][j] = index of element a_i ∧ a_j */
+  meet: number[][];
+  /** join[i][j] = index of element a_i ∨ a_j */
+  join: number[][];
+  /** rank (height above the bottom element) of each element */
+  rank: number[];
+  complete: boolean;
+  distributive: boolean;
+  /** labels of the bottom and top element, when they exist */
+  bottom?: string;
+  top?: string;
+  note: string;
+}
+
+export interface DivisorLattice {
+  n: number;
+  primes: number[];
+  /** divisors of n, ascending */
+  elements: number[];
+  /** exponents of primes[k] in elements[i] */
+  exponents: number[][];
+  /** total number of prime factors (with multiplicity) of elements[i] */
+  rank: number[];
+  /** cover edges as [lower, upper] values */
+  covers: [number, number][];
+}
+
+/**
+ * The divisor lattice D_n. A cover is exactly one prime factor added, so the
+ * rank of a divisor is its total number of prime factors. Throws when n has
+ * more than three distinct primes (nothing beyond that has a 2-D layout here).
+ */
+export function divisorLattice(n: number): DivisorLattice {
+  const counts = new Map<number, number>();
+  for (const p of factorize(n)) counts.set(p, (counts.get(p) ?? 0) + 1);
+  const primes = [...counts.keys()].sort((a, b) => a - b);
+  if (primes.length > 3) throw new Error(`divisorLattice: ${n} has more than three distinct prime factors`);
+  const elements = divisors(n);
+  const exponents: number[][] = elements.map((d) => {
+    let rem = d;
+    return primes.map((p) => {
+      let e = 0;
+      while (rem % p === 0) {
+        rem /= p;
+        e++;
+      }
+      return e;
+    });
+  });
+  const rank = exponents.map((v) => v.reduce((s, e) => s + e, 0));
+  const covers: [number, number][] = [];
+  for (const d of elements) {
+    for (const p of primes) if (n % (d * p) === 0) covers.push([d, d * p]);
+  }
+  return { n, primes, elements, exponents, rank, covers };
+}
+
+/** Normalized (x, y) layout for the divisor lattice of n. */
+function divisorLayout(L: DivisorLattice): { x: number; y: number }[] {
+  const maxRank = Math.max(...L.rank);
+  const y = (r: number): number => 0.08 + (0.84 * r) / maxRank;
+  const k = L.primes.length;
+  // One horizontal "lane" per prime factor; lanes span [0.14, 0.86].
+  const lane = (t: number): number => 0.5 + (0.36 * (2 * t - (k - 1))) / (k - 1 || 1);
+  const span0 = L.exponents.reduce((m, w) => Math.max(m, w[0] ?? 0), 0);
+  const span1 = L.exponents.reduce((m, w) => Math.max(m, w[1] ?? 0), 0);
+  return L.exponents.map((v, i) => {
+    let x: number;
+    if (k === 1) {
+      x = 0.5;
+    } else if (k === 2) {
+      // two primes: the position slides with the normalized exponent difference,
+      // so 36's 3x3 grid lands on five evenly spaced columns
+      x = 0.5 + 0.36 * (v[0] / span0 - v[1] / span1);
+    } else {
+      const used = v.map((e, t) => (e > 0 ? lane(t) : NaN)).filter((l) => Number.isFinite(l));
+      x = used.length ? used.reduce((s, l) => s + l, 0) / used.length : 0.5;
+    }
+    return { x, y: y(L.rank[i]) };
+  });
+}
+
+/** Meet/join index tables for a divisor lattice: gcd and lcm. */
+function divisorTables(L: DivisorLattice): { meet: number[][]; join: number[][] } {
+  const idx = new Map(L.elements.map((d, i) => [d, i] as const));
+  const meet: number[][] = [];
+  const join: number[][] = [];
+  for (let i = 0; i < L.elements.length; i++) {
+    const mi: number[] = [];
+    const ji: number[] = [];
+    for (let j = 0; j < L.elements.length; j++) {
+      mi.push(idx.get(gcd(L.elements[i], L.elements[j]))!);
+      ji.push(idx.get(lcm(L.elements[i], L.elements[j]))!);
+    }
+    meet.push(mi);
+    join.push(ji);
+  }
+  return { meet, join };
+}
+
+const sub = (s: string): string =>
+  s.split('').map((c) => '₀₁₂₃₄₅₆₇₈₉'[Number(c)] ?? c).join('');
+
+function divisorPreset(id: string, n: number, short: string, kind: string, note: string, distributive: boolean): LatticePreset {
+  const L = divisorLattice(n);
+  const { meet, join } = divisorTables(L);
+  const pos = divisorLayout(L);
+  return {
+    id,
+    label: `D${sub(String(n))}`,
+    short,
+    kind,
+    ops: ['gcd', 'lcm'],
+    elements: L.elements.map((d, i) => ({ label: String(d), x: pos[i].x, y: pos[i].y })),
+    covers: L.covers.map(([lo, hi]) => [L.elements.indexOf(lo), L.elements.indexOf(hi)] as [number, number]),
+    meet,
+    join,
+    rank: L.rank,
+    complete: true,
+    distributive,
+    bottom: '1',
+    top: String(n),
+    note,
+  };
+}
+
+/** The pentagon N5: 0 < a < 1 and 0 < b < c < 1, with a incomparable to b and c. */
+const N5_PRESET: LatticePreset = (() => {
+  const elements: LatticeElement[] = [
+    { label: '0', x: 0.5, y: 0.08 },
+    { label: 'a', x: 0.18, y: 0.38 },
+    { label: 'b', x: 0.5, y: 0.38 },
+    { label: 'c', x: 0.5, y: 0.66 },
+    { label: '1', x: 0.5, y: 0.92 },
+  ];
+  // indices: 0 = bottom, 1 = a, 2 = b, 3 = c, 4 = top
+  const covers: [number, number][] = [[0, 1], [0, 2], [2, 3], [3, 4], [1, 4]];
+  const meet: number[][] = [
+    [0, 0, 0, 0, 0],
+    [0, 1, 0, 0, 1],
+    [0, 0, 2, 2, 2],
+    [0, 0, 2, 3, 3],
+    [0, 1, 2, 3, 4],
+  ];
+  const join: number[][] = [
+    [0, 1, 2, 3, 4],
+    [1, 1, 4, 4, 4],
+    [2, 4, 2, 3, 4],
+    [3, 4, 3, 3, 4],
+    [4, 4, 4, 4, 4],
+  ];
+  return {
+    id: 'n5',
+    label: 'N₅',
+    short: 'pentagon',
+    kind: 'the pentagon — smallest non-distributive lattice',
+    ops: ['∧', '∨'],
+    elements,
+    covers,
+    meet,
+    join,
+    rank: [0, 1, 1, 2, 3],
+    complete: true,
+    distributive: false,
+    bottom: '0',
+    top: '1',
+    note: 'The distributive law fails here: c ∧ (a ∨ b) = c, while (c ∧ a) ∨ (c ∧ b) = b. A lattice is distributive exactly when it contains neither N₅ nor M₃ (the diamond) as a sublattice.',
+  };
+})();
+
+export const LATTICE_PRESETS: LatticePreset[] = [
+  divisorPreset(
+    'd36', 36, '3×3 grid',
+    'divisors of 36 = 2²·3² — a 3×3 exponent grid',
+    'Each divisor sits in a grid cell 2^i·3^j. The meet takes the smaller exponent in each axis (gcd), the join the larger (lcm). Grids are distributive but not Boolean — for instance, 4 has no complement.',
+    true,
+  ),
+  divisorPreset(
+    'd30', 30, 'cube B₃',
+    'divisors of 30 = 2·3·5 — the Boolean lattice B₃ (a cube)',
+    'Each divisor is a subset of {2, 3, 5}: the meet is gcd (intersection of prime sets), the join is lcm (union). Every element has a unique complement — its "opposite" corner, the product that gives 30 — which is what makes B₃ a Boolean algebra.',
+    true,
+  ),
+  N5_PRESET,
+];
+
+export const getLatticePreset = (id: string): LatticePreset =>
+  LATTICE_PRESETS.find((p) => p.id === id) ?? LATTICE_PRESETS[0];

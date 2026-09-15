@@ -99,6 +99,7 @@ async function main(): Promise<void> {
     ['central-limit-theorem', 'Central limit theorem sampler'],
     ['gradient-descent', 'Gradient descent on a loss surface'],
     ['compression', 'Huffman coding'],
+    ['lattice-logic', 'Lattice explorer'],
   ];
   for (const [conceptId, marker] of vizProps) {
     const html = decode(await renderApp(`/concept/${conceptId}`));

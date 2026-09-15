@@ -13,7 +13,7 @@ import { mulberry32 } from '../lib/stat';
 import {
   LANDSCAPES, MAP_PRESETS, POPULATIONS, TAYLOR_PRESETS,
   applyMap, bayes, bayesCounts, cltRun, gdRun, getLandscape, getMapPreset, getPopulation,
-  getTaylorPreset, huffmanCodes, huffmanDecode, huffmanEncode, isPrefixFree, mapInfo,
+  getTaylorPreset, LATTICE_PRESETS, getLatticePreset, huffmanCodes, huffmanDecode, huffmanEncode, isPrefixFree, mapInfo,
   normalOverlay, sampleFn, taylorApprox, taylorError, taylorTerm, transformedUnitSquare, turnDegrees,
 } from '../lib/vizmath';
 import { usePreferences } from './Preferences';
@@ -2484,6 +2484,212 @@ function HuffmanViz({ props }: { props?: Record<string, unknown> }) {
 }
 
 // ---------------------------------------------------------------------------
+// 16. Lattice explorer (Hasse diagrams: D36, D30, N5)
+// ---------------------------------------------------------------------------
+
+function LatticeViz({ props }: { props?: Record<string, unknown> }) {
+  const [presetId, setPresetId] = useState((props?.preset as string | undefined) ?? 'd36');
+  const [sel, setSel] = useState<number[]>([]);
+  const preset = getLatticePreset(presetId);
+  const n = preset.elements.length;
+  const maxRank = Math.max(...preset.rank);
+
+  const W = 430;
+  const H = 300;
+  const px = (x: number): number => 34 + x * (W - 68);
+  const py = (y: number): number => H - 26 - y * (H - 58);
+
+  const pick = (i: number): void => {
+    setSel((s) => (s.includes(i) ? s.filter((x) => x !== i) : s.length >= 2 ? [i] : [...s, i]));
+  };
+
+  const pair = sel.length === 2 ? sel : null;
+  const meetI = pair ? preset.meet[pair[0]][pair[1]] : null;
+  const joinI = pair ? preset.join[pair[0]][pair[1]] : null;
+
+  // a ≤ b  ⟺  a ∧ b = a — the tables are the order.
+  const le = (a: number, b: number): boolean => preset.meet[a][b] === a;
+
+  // Cover edges inside the interval [meet, join]: meet ≤ u < v ≤ join.
+  const intervalEdges = useMemo(() => {
+    const out = new Set<string>();
+    if (pair && meetI !== null && joinI !== null) {
+      for (const [u, v] of preset.covers) if (le(meetI, u) && le(v, joinI)) out.add(`${u}-${v}`);
+    }
+    return out;
+  }, [pair, preset]);
+
+  const bottomEl = preset.elements.find((e) => e.label === preset.bottom);
+  const topEl = preset.elements.find((e) => e.label === preset.top);
+
+  const fill = (i: number): [string, string, number] => {
+    if (joinI === i) return [SVG_GOLDL, SVG_GOLD, 2];
+    if (meetI === i) return [SVG_MOSSL, SVG_MOSS, 2];
+    if (sel[0] === i) return [SVG_BLUEL, SVG_BLUE, 1.6];
+    if (sel[1] === i) return [SVG_GOLDL, SVG_GOLD, 1.6];
+    return [SVG_PAPER, SVG_LINE2, 1.2];
+  };
+
+  const la = pair ? preset.elements[pair[0]].label : '';
+  const lb = pair ? preset.elements[pair[1]].label : '';
+
+  return (
+    <VizShell
+      title="Lattice explorer"
+      right={
+        <span className="text-xs text-ink3 font-mono">
+          {n} elements · height {maxRank} · {preset.distributive ? 'distributive' : 'not distributive'}
+        </span>
+      }
+    >
+      <div className="flex flex-wrap gap-1.5">
+        {LATTICE_PRESETS.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => { setPresetId(p.id); setSel([]); }}
+            className={`chip cursor-pointer ${presetId === p.id ? 'bg-bluel text-blue border-bluep' : 'hover:bg-paper2'}`}
+          >
+            {p.label} — {p.short}
+          </button>
+        ))}
+        {sel.length > 0 && (
+          <button type="button" className="chip cursor-pointer hover:bg-paper2" onClick={() => setSel([])}>
+            clear selection
+          </button>
+        )}
+      </div>
+
+      <div className="mt-1 text-xs text-ink3">{preset.kind}</div>
+
+      <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr),minmax(0,17rem)]">
+        <div className="min-w-0">
+          <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-[460px] bg-surface border border-line">
+            {preset.covers.map(([u, v], i) => {
+              const hot = intervalEdges.has(`${u}-${v}`);
+              return (
+                <line
+                  key={i}
+                  x1={px(preset.elements[u].x)}
+                  y1={py(preset.elements[u].y)}
+                  x2={px(preset.elements[v].x)}
+                  y2={py(preset.elements[v].y)}
+                  stroke={hot ? SVG_BLUE : SVG_LINE2}
+                  strokeWidth={hot ? 2 : 1.4}
+                />
+              );
+            })}
+            {bottomEl && (
+              <text
+                x={px(bottomEl.x)}
+                y={py(bottomEl.y) + 27}
+                fontSize={10}
+                textAnchor="middle"
+                fill={SVG_INK3}
+                fontFamily="ui-monospace, monospace"
+              >
+                ⊥ bottom
+              </text>
+            )}
+            {topEl && (
+              <text
+                x={px(topEl.x)}
+                y={py(topEl.y) - 19}
+                fontSize={10}
+                textAnchor="middle"
+                fill={SVG_INK3}
+                fontFamily="ui-monospace, monospace"
+              >
+                ⊤ top
+              </text>
+            )}
+            {preset.elements.map((e, i) => {
+              const [f, s, w] = fill(i);
+              return (
+                <g key={i} onClick={() => pick(i)} className="cursor-pointer">
+                  <title>{`rank ${preset.rank[i]} — click to select`}</title>
+                  <circle cx={px(e.x)} cy={py(e.y)} r={13} fill={f} stroke={s} strokeWidth={w} />
+                  <text
+                    x={px(e.x)}
+                    y={py(e.y) + 4}
+                    fontSize={11}
+                    textAnchor="middle"
+                    fill={SVG_INK}
+                    fontFamily="ui-monospace, monospace"
+                    fontWeight={sel.includes(i) || meetI === i || joinI === i ? 700 : 500}
+                  >
+                    {e.label}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+          <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink3">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full border border-blue bg-bluel" /> selected
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full border border-moss bg-mossl" /> meet (greatest lower bound)
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rounded-full border border-gold bg-goldl" /> join (least upper bound)
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-0.5 w-4 bg-blue" /> interval between them
+            </span>
+          </div>
+        </div>
+
+        <div className="min-w-0 text-xs leading-relaxed text-ink2">
+          {!pair ? (
+            <p className="text-ink3">
+              {sel.length === 0
+                ? 'Click any two elements. Their meet and join light up, and the blue edges span exactly the interval between them.'
+                : `Selected ${la}. Pick one more element to compute the meet and join.`}
+            </p>
+          ) : (
+            <div className="border border-line bg-paper2/40 p-2.5 font-mono text-[13px]">
+              <div>
+                <span className="text-moss">
+                  {preset.ops[0]}({la}, {lb}) = {preset.elements[meetI!].label}
+                </span>
+                <span className="ml-2 font-sans text-[11px] text-ink3">meet — greatest lower bound</span>
+              </div>
+              <div className="mt-1.5">
+                <span className="text-gold">
+                  {preset.ops[1]}({la}, {lb}) = {preset.elements[joinI!].label}
+                </span>
+                <span className="ml-2 font-sans text-[11px] text-ink3">join — least upper bound</span>
+              </div>
+            </div>
+          )}
+          <div className="mt-2.5 space-y-1 text-[11px] text-ink3">
+            <div>
+              {n} elements · height {maxRank} · complete lattice
+            </div>
+            <div>
+              {preset.distributive ? (
+                'distributive: a ∧ (b ∨ c) = (a ∧ b) ∨ (a ∧ c)'
+              ) : (
+                <span className="text-terracotta">
+                  not distributive: c ∧ (a ∨ b) = c, but (c ∧ a) ∨ (c ∧ b) = b — the law breaks on the pentagon
+                </span>
+              )}
+            </div>
+            {preset.bottom !== undefined && preset.top !== undefined && (
+              <div>
+                ⊥ = {preset.bottom} (least) · ⊤ = {preset.top} (greatest)
+              </div>
+            )}
+          </div>
+          <p className="mt-2.5 text-[11px] leading-relaxed text-ink3">{preset.note}</p>
+        </div>
+      </div>
+    </VizShell>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Registry
 // ---------------------------------------------------------------------------
 
@@ -2505,6 +2711,7 @@ const REGISTRY: Record<string, VizCmp> = {
   clt: CltViz,
   'gradient-descent': GradientDescentViz,
   huffman: HuffmanViz,
+  lattice: LatticeViz,
 };
 
 export function Viz({ id, props }: { id: string; props?: Record<string, unknown> }) {

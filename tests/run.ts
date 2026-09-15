@@ -32,6 +32,7 @@ import {
   TAYLOR_PRESETS, cosCoeffs, expCoeffs, sinCoeffs, getTaylorPreset, polyEval, sampleFn, taylorApprox, taylorError, taylorTerm,
   bayes, bayesCounts, huffmanCodes, huffmanDecode, huffmanEncode, isPrefixFree, cltRun, getPopulation, normalDraw, normalOverlay,
   gdRun, getLandscape, applyMap, getMapPreset, mapInfo, polygonArea2, transformedUnitSquare, turnDegrees,
+  LATTICE_PRESETS, getLatticePreset, divisorLattice,
 } from '../src/lib/vizmath';
 
 let pass = 0, fail = 0;
@@ -564,6 +565,104 @@ console.log('concept index + lazy domain loading (bundle split)');
   ok('every domain loads through the lazy loader', true);
   ok('loaded bodies match the index entry they stand for', bodiesMatch);
   ok('loading an unknown concept resolves to undefined', (await loadConcept('no-such-concept')) === undefined);
+}
+
+console.log('lattice math (D36, D30, N5)');
+{
+  type Lat = { meet: number[][]; join: number[][] };
+  const le = (p: Lat, a: number, b: number): boolean => p.meet[a][b] === a;
+  /** distributive law a ∧ (b ∨ c) = (a ∧ b) ∨ (a ∧ c), for every triple */
+  const isDistributiveTable = (p: Lat): boolean => {
+    const n = p.meet.length;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) for (let k = 0; k < n; k++) {
+      if (p.meet[i][p.join[j][k]] !== p.join[p.meet[i][j]][p.meet[i][k]]) return false;
+    }
+    return true;
+  };
+
+  for (const p of LATTICE_PRESETS) {
+    const n = p.elements.length;
+    let idem = true, sym = true, assoc = true, abs = true, meetLeJoin = true;
+    for (let i = 0; i < n; i++) {
+      idem = idem && p.meet[i][i] === i && p.join[i][i] === i;
+      for (let j = 0; j < n; j++) {
+        sym = sym && p.meet[i][j] === p.meet[j][i] && p.join[i][j] === p.join[j][i];
+        meetLeJoin = meetLeJoin && le(p, p.meet[i][j], p.join[i][j]);
+        abs = abs && p.join[i][p.meet[i][j]] === i && p.meet[i][p.join[i][j]] === i;
+        for (let k = 0; k < n; k++) {
+          assoc = assoc
+            && p.meet[p.meet[i][j]][k] === p.meet[i][p.meet[j][k]]
+            && p.join[p.join[i][j]][k] === p.join[i][p.join[j][k]];
+        }
+      }
+    }
+    ok(`${p.id}: meet/join tables form a lattice (idempotent, commutative, associative, absorbing)`,
+      idem && sym && assoc && abs);
+    ok(`${p.id}: meet ≤ join for every pair`, meetLeJoin);
+    // covers are strict rank-raising steps and a meet of the pair is the lower end
+    ok(`${p.id}: every cover is strict and rank-raising`,
+      p.covers.every(([u, v]) => u !== v && p.rank[v] > p.rank[u] && le(p, u, v)));
+    // bottoms and tops really are least/greatest
+    const bi = p.elements.findIndex((e) => e.label === p.bottom);
+    const ti = p.elements.findIndex((e) => e.label === p.top);
+    ok(`${p.id}: declared ⊥ is least and ⊤ is greatest`,
+      bi >= 0 && ti >= 0 && p.elements.every((_, i) => le(p, bi, i) && le(p, i, ti)));
+    // every pair has a meet and a join (the defining property of a lattice)
+    ok(`${p.id}: every pair has a join and a meet`,
+      p.elements.every((_, i) => p.elements.every((_, j) =>
+        le(p, p.meet[i][j], i) && le(p, p.meet[i][j], j) && le(p, i, p.join[i][j]) && le(p, j, p.join[i][j]))));
+  }
+
+  const idxOf = (p: (typeof LATTICE_PRESETS)[number], label: string): number =>
+    p.elements.findIndex((e) => e.label === label);
+
+  const d36 = getLatticePreset('d36');
+  ok('D36 has the nine divisors of 36 in order',
+    d36.elements.map((e) => e.label).join(' ') === '1 2 3 4 6 9 12 18 36');
+  ok('D36 has 12 cover edges (each multiplies by one prime)', d36.covers.length === 12);
+  ok('D36 ranks: 1:0 2:1 3:1 4:2 6:2 9:2 12:3 18:3 36:4',
+    d36.rank.join(' ') === '0 1 1 2 2 2 3 3 4');
+  ok('D36 is graded: every cover raises the rank by exactly 1',
+    d36.covers.every(([u, v]) => d36.rank[v] === d36.rank[u] + 1));
+  ok('D36: 12 ∧ 18 = 6 and 12 ∨ 18 = 36 (gcd / lcm)',
+    d36.elements[d36.meet[idxOf(d36, '12')][idxOf(d36, '18')]].label === '6'
+    && d36.elements[d36.join[idxOf(d36, '12')][idxOf(d36, '18')]].label === '36');
+  ok('D36: 4 ∧ 6 = 2 and 4 ∨ 6 = 12',
+    d36.elements[d36.meet[idxOf(d36, '4')][idxOf(d36, '6')]].label === '2'
+    && d36.elements[d36.join[idxOf(d36, '4')][idxOf(d36, '6')]].label === '12');
+  ok('D36 is distributive (product of two chains)', isDistributiveTable(d36));
+
+  const d30 = getLatticePreset('d30');
+  ok('D30 has the eight divisors of 30 in order',
+    d30.elements.map((e) => e.label).join(' ') === '1 2 3 5 6 10 15 30');
+  ok('D30 has 12 cover edges (a cube)', d30.covers.length === 12);
+  ok('D30 is graded: every cover raises the rank by exactly 1',
+    d30.covers.every(([u, v]) => d30.rank[v] === d30.rank[u] + 1));
+  // Boolean: every element has a unique complement
+  const top30 = idxOf(d30, '30'), bot30 = idxOf(d30, '1');
+  ok('D30 (B3): every element has exactly one complement',
+    d30.elements.every((_, i) =>
+      d30.elements.filter((__, c) => d30.join[i][c] === top30 && d30.meet[i][c] === bot30).length === 1));
+  ok('D30 is distributive (a Boolean algebra)', isDistributiveTable(d30));
+
+  const n5 = getLatticePreset('n5');
+  ok('N5 has five elements and five cover edges', n5.elements.length === 5 && n5.covers.length === 5);
+  ok('N5 is not graded (a ⊤-cover of a jumps two ranks)',
+    !n5.covers.every(([u, v]) => n5.rank[v] === n5.rank[u] + 1));
+  ok('N5: a ∧ b = 0 and a ∨ b = 1 (a is incomparable to b)',
+    n5.elements[n5.meet[idxOf(n5, 'a')][idxOf(n5, 'b')]].label === '0'
+    && n5.elements[n5.join[idxOf(n5, 'a')][idxOf(n5, 'b')]].label === '1');
+  ok('N5 fails distributivity: c ∧ (a ∨ b) = c but (c ∧ a) ∨ (c ∧ b) = b', !isDistributiveTable(n5));
+
+  const L = divisorLattice(36);
+  ok('divisorLattice(36) covers are single-prime steps',
+    L.covers.every(([lo, hi]) => hi / lo === 2 || hi / lo === 3));
+  const L60 = divisorLattice(60);
+  ok('divisorLattice(60) has 12 elements and the right height (Ω(60) = 4)',
+    L60.elements.length === 12 && Math.max(...L60.rank) === 4);
+  let threw = false;
+  try { divisorLattice(2 * 3 * 5 * 7); } catch { threw = true; }
+  ok('divisorLattice rejects >3 distinct primes', threw);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
