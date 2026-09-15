@@ -1149,6 +1149,108 @@ for (const x of tasks) for (const y of tasks) if (x < y && !leq(x, y) && !leq(y,
 console.log("incomparable pairs: " + incomparable.join(" "));`,
     output: 'valid build orders:\n  a -> b -> c -> d -> e\n  a -> c -> b -> d -> e\ncount: 2 of 120 orderings\nincomparable pairs: b~c',
   },
+  {
+    id: 'boolean-laws',
+    conceptId: 'boolean-basics',
+    title: 'Every law, checked by exhaustive evaluation',
+    blurb: 'Nine identities of Boolean algebra, each verified on all 8 rows of its truth table — no algebra required, only brute force.',
+    code: `const rows = n => Array.from({ length: 2 ** n }, (_, i) => Array.from({ length: n }, (_, b) => (i >> (n - 1 - b)) & 1));
+const eq = (f, g, n) => rows(n).every(v => f(v) === g(v));
+
+// bits are 0/1, so OR is "max" and AND is "min" written with || and &&
+const NOT = x => 1 - x;
+const laws = [
+  ["idempotent",   v => v[0] || v[0],               v => v[0],                   1],
+  ["identity",     v => v[0] || 0,                  v => v[0],                   1],
+  ["domination",   v => v[0] || 1,                  () => 1,                     1],
+  ["complement",   v => v[0] || NOT(v[0]),          () => 1,                     1],
+  ["distributive", v => v[0] && (v[1] || v[2]),     v => (v[0] && v[1]) || (v[0] && v[2]), 3],
+  ["absorption",   v => v[0] || (v[0] && v[1]),     v => v[0],                   2],
+  ["De Morgan",    v => NOT(v[0] && v[1]),          v => NOT(v[0]) || NOT(v[1]),  2],
+  ["consensus",    v => (v[0] && v[1]) || (NOT(v[0]) && v[2]) || (v[1] && v[2]),
+                   v => (v[0] && v[1]) || (NOT(v[0]) && v[2]),                   3],
+  ["involution",   v => NOT(NOT(v[0])),             v => v[0],                   1],
+];
+for (const [name, left, right, n] of laws) {
+  console.log(name.padEnd(13) + " holds on all " + 2 ** n + " rows: " + eq(left, right, n));
+}
+console.log("distinct Boolean functions of 3 variables: " + 2 ** (2 ** 3));`,
+    output: 'idempotent    holds on all 2 rows: true\nidentity      holds on all 2 rows: true\ndomination    holds on all 2 rows: true\ncomplement    holds on all 2 rows: true\ndistributive  holds on all 8 rows: true\nabsorption    holds on all 4 rows: true\nDe Morgan     holds on all 4 rows: true\nconsensus     holds on all 8 rows: true\ninvolution    holds on all 2 rows: true\ndistinct Boolean functions of 3 variables: 256',
+  },
+  {
+    id: 'nand-universal',
+    conceptId: 'logic-gates',
+    title: 'Gate libraries, verified gate by gate',
+    blurb: 'OR from three NANDs, XOR from four, then a full adder — with each network checked against its truth table instead of trusted.',
+    code: `const NAND = (a, b) => 1 - (a && b);
+const NOT = a => NAND(a, a);
+const OR = (a, b) => NAND(NAND(a, a), NAND(b, b));
+const AND = (a, b) => NOT(NAND(a, b));
+const XOR = (a, b) => NAND(NAND(a, NAND(a, b)), NAND(b, NAND(a, b)));
+
+const rows = n => Array.from({ length: 2 ** n }, (_, i) => Array.from({ length: n }, (_, b) => (i >> (n - 1 - b)) & 1));
+const check = (name, built, ref, n) => {
+  const ok = rows(n).every(v => built(...v) === ref(...v));
+  console.log(name.padEnd(22) + "matches its truth table: " + ok);
+};
+
+check("NOT built from NAND", NOT, a => (a ? 0 : 1), 1);
+check("OR built from NAND", OR, (a, b) => a || b, 2);
+check("XOR built from NAND", XOR, (a, b) => (a === b ? 0 : 1), 2);
+
+const sum = (a, b, cin) => XOR(XOR(a, b), cin);
+const carry = (a, b, cin) => OR(OR(AND(a, b), AND(a, cin)), AND(b, cin));
+let correct = 0, bad = "";
+for (let i = 0; i < 8; i++) {
+  const a = (i >> 2) & 1, b = (i >> 1) & 1, cin = i & 1;
+  const want = a + b + cin;
+  if (sum(a, b, cin) + 2 * carry(a, b, cin) === want) correct++;
+  else bad = "(" + a + "," + b + "," + cin + ")";
+}
+console.log("full adder: " + correct + "/8 rows correct" + (bad ? " first failure " + bad : ""));
+console.log("gate budget for one adder: 2 XOR (8 NANDs) + 2 AND (4 NANDs) + 1 OR (3 NANDs) = 15 NANDs");`,
+    output: 'NOT built from NAND   matches its truth table: true\nOR built from NAND    matches its truth table: true\nXOR built from NAND   matches its truth table: true\nfull adder: 8/8 rows correct\ngate budget for one adder: 2 XOR (8 NANDs) + 2 AND (4 NANDs) + 1 OR (3 NANDs) = 15 NANDs',
+  },
+  {
+    id: 'kmap-minimize',
+    conceptId: 'boolean-simplification',
+    title: 'Quine–McCluskey on a 3-variable function',
+    blurb: 'The K-map done by machine: merge minterms that differ in one literal until nothing merges, then read off the prime implicants.',
+    code: `const minterms = [0, 1, 4, 5];          // f = 1 on these rows of (a, b, c)
+const names = ["a", "b", "c"];
+const term = (m, keep) => m.toString(2).padStart(3, "0")
+  .split("").map((bit, i) => keep[i] ? (bit === "1" ? names[i] : names[i] + "'") : "").join("");
+
+let groups = minterms.map(m => ({ mask: 0b111, bits: m, covers: [m] }));
+const primes = [];
+while (groups.length) {
+  const merged = [], used = new Set();
+  for (let i = 0; i < groups.length; i++) {
+    for (let j = i + 1; j < groups.length; j++) {
+      const x = groups[i], y = groups[j];
+      const diff = x.bits ^ y.bits;
+      if (x.mask === y.mask && (diff & (diff - 1)) === 0 && diff !== 0) {
+        merged.push({ mask: x.mask & ~diff, bits: x.bits & ~diff, covers: [...x.covers, ...y.covers] });
+        used.add(i); used.add(j);
+      }
+    }
+  }
+  groups.forEach((g, i) => { if (!used.has(i) && !primes.some(p => p.mask === g.mask && p.bits === g.bits)) primes.push(g); });
+  const next = [];
+  for (const m of merged) if (!next.some(g => g.mask === m.mask && g.bits === m.bits)) next.push(m);
+  groups = next;
+}
+
+for (const p of primes) {
+  const keep = names.map((_, i) => (p.mask & (1 << (2 - i))) !== 0);
+  console.log("prime implicant: " + term(p.bits, keep) + "   covers rows " + p.covers.sort((x, y) => x - y).join(", "));
+}
+const literals = primes.reduce((s, p) => s + p.mask.toString(2).replace(/0/g, "").length, 0);
+console.log("canonical form: " + minterms.length + " terms, " + minterms.length * 3 + " literals");
+console.log("minimized: " + primes.map(p => term(p.bits, names.map((_, i) => (p.mask & (1 << (2 - i))) !== 0))).join(" + ") +
+            "  ->  " + primes.length + " term, " + literals + " literal");`,
+    output: 'prime implicant: b\'   covers rows 0, 1, 4, 5\ncanonical form: 4 terms, 12 literals\nminimized: b\'  ->  1 term, 1 literal',
+  },
 ];
 
 export const snippetById = (id: string): Snippet | undefined => snippets.find((s) => s.id === id);
