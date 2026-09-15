@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { lazy, Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
 import * as Lucide from 'lucide-react';
 import { MathText } from './TeX';
 import type { Block, Concept, Difficulty, Level, PracticeQ } from '../data/types';
 import { getConcept } from '../lib/concepts';
 import { useStore } from '../lib/store';
+import { useToast } from './Toast';
 
 // ---------------------------------------------------------------------------
 // Icons — content stores lucide icon names as strings; resolve them here.
@@ -125,22 +126,68 @@ function LabeledCard({
   labelClass,
   cardClass,
   title,
+  id,
+  action,
   children,
 }: {
   label: string;
   labelClass: string;
   cardClass: string;
   title?: string;
+  id?: string;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <div className={`my-5 border ${cardClass}`}>
+    <div id={id} className={`my-5 scroll-mt-24 border ${cardClass}`}>
       <div className={`flex items-center gap-2 px-4 pt-3 ${labelClass}`}>
         <span className="text-[11px] font-semibold uppercase tracking-wider">{label}</span>
-        {title && <span className="text-sm font-medium text-ink">{title}</span>}
+        {title && <span className="min-w-0 text-sm font-medium text-ink">{title}</span>}
+        {action && <span className="ml-auto shrink-0">{action}</span>}
       </div>
-      <div className="px-4 pb-4 pt-1 text-sm leading-relaxed">{children}</div>
+      <div className="reading-body px-4 pb-4 pt-1 text-sm leading-relaxed">{children}</div>
     </div>
+  );
+}
+
+export function CopyLatexButton({ latex }: { latex: string }) {
+  const { showToast } = useToast();
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(latex);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = latex;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        textarea.remove();
+      }
+      setCopied(true);
+      showToast('LaTeX copied to clipboard', { tone: 'success' });
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      showToast('Could not copy LaTeX');
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      className="btn-ghost btn-sm no-print"
+      aria-label="Copy LaTeX"
+      title="Copy LaTeX source"
+    >
+      {copied ? <Lucide.Check size={12} /> : <Lucide.Copy size={12} />}
+      {copied ? 'Copied' : 'Copy LaTeX'}
+    </button>
   );
 }
 
@@ -170,34 +217,34 @@ function ProofDetails({ title, steps }: { title?: string; steps: string[] }) {
   );
 }
 
-export function BlockView({ block }: { block: Block }) {
+export function BlockView({ block, anchorId }: { block: Block; anchorId?: string }) {
   switch (block.t) {
     case 'h':
       return (
-        <h2 className="mt-8 mb-3 text-xl font-semibold text-ink font-serif">{block.text}</h2>
+        <h2 id={anchorId} className="mt-8 mb-3 scroll-mt-24 text-xl font-semibold text-ink font-serif">{block.text}</h2>
       );
     case 'p':
       return (
-        <p className="my-4 text-[0.94rem] leading-7 text-ink2">
+        <p className="reading-body my-4 text-[0.94rem] leading-7 text-ink2">
           <RichText text={block.text} />
         </p>
       );
     case 'intuition':
       return (
-        <LabeledCard label="Intuition" labelClass="text-blue" cardClass="border-bluep bg-bluel/40">
+        <LabeledCard id={anchorId} label="Intuition" labelClass="text-blue" cardClass="border-bluep bg-bluel/40">
           {block.title && <div className="font-medium text-ink mb-1">{block.title}</div>}
           <RichText text={block.text} />
         </LabeledCard>
       );
     case 'def':
       return (
-        <LabeledCard label="Definition" labelClass="text-gold" cardClass="border-[#e6dcc0] bg-goldl/50" title={block.title}>
+        <LabeledCard id={anchorId} label="Definition" labelClass="text-gold" cardClass="border-goldline bg-goldl/50" title={block.title}>
           <RichText text={block.text} />
         </LabeledCard>
       );
     case 'formula':
       return (
-        <LabeledCard label="Key formula" labelClass="text-blue" cardClass="border-line bg-white" title={block.name}>
+        <LabeledCard id={anchorId} label="Key formula" labelClass="text-blue" cardClass="border-line bg-surface" title={block.name} action={<CopyLatexButton latex={block.latex} />}>
           <MathText text={`$$${block.latex}$$`} />
           {block.note && (
             <div className="mt-2 text-xs text-ink3">
@@ -208,7 +255,7 @@ export function BlockView({ block }: { block: Block }) {
       );
     case 'props':
       return (
-        <LabeledCard label="Properties" labelClass="text-moss" cardClass="border-line bg-paper2/50" title={block.title}>
+        <LabeledCard id={anchorId} label="Properties" labelClass="text-moss" cardClass="border-line bg-paper2/50" title={block.title}>
           <ul className="space-y-2">
             {block.items.map((it, i) => (
               <li key={i} className="flex gap-2">
@@ -224,7 +271,7 @@ export function BlockView({ block }: { block: Block }) {
       );
     case 'ex':
       return (
-        <LabeledCard label="Worked example" labelClass="text-terracotta" cardClass="border-[#ecd5cf] bg-terracottal/40" title={block.title}>
+        <LabeledCard id={anchorId} label="Worked example" labelClass="text-terracotta" cardClass="border-terraline bg-terracottal/40" title={block.title}>
           <ol className="space-y-2">
             {block.steps.map((s, i) => (
               <li key={i} className="flex gap-2">
@@ -234,7 +281,7 @@ export function BlockView({ block }: { block: Block }) {
             ))}
           </ol>
           {block.result && (
-            <div className="mt-3 border-t border-dashed border-[#e0c4bc] pt-2 text-sm">
+            <div className="mt-3 border-t border-dashed border-terraline pt-2 text-sm">
               <span className="font-medium text-terracotta">Result: </span>
               <RichText text={block.result} />
             </div>
@@ -243,7 +290,7 @@ export function BlockView({ block }: { block: Block }) {
       );
     case 'thm':
       return (
-        <LabeledCard label="Theorem" labelClass="text-blue" cardClass="border-bluep bg-white" title={block.name}>
+        <LabeledCard id={anchorId} label="Theorem" labelClass="text-blue" cardClass="border-bluep bg-surface" title={block.name}>
           <RichText text={block.statement} />
           {block.proof && block.proof.length > 0 && (
             <ProofDetails title={block.proofTitle} steps={block.proof} />
@@ -252,13 +299,13 @@ export function BlockView({ block }: { block: Block }) {
       );
     case 'analogy':
       return (
-        <LabeledCard label="Analogy" labelClass="text-gold" cardClass="border-line bg-paper2/60" title={block.title}>
+        <LabeledCard id={anchorId} label="Analogy" labelClass="text-gold" cardClass="border-line bg-paper2/60" title={block.title}>
           <RichText text={block.text} />
         </LabeledCard>
       );
     case 'cs':
       return (
-        <LabeledCard label="Where computer science uses this" labelClass="text-moss" cardClass="border-line bg-mossl/40">
+        <LabeledCard id={anchorId} label="Where computer science uses this" labelClass="text-moss" cardClass="border-line bg-mossl/40">
           {block.title && <div className="font-medium text-ink mb-1">{block.title}</div>}
           <ul className="space-y-2">
             {block.items.map((it, i) => (
@@ -273,14 +320,14 @@ export function BlockView({ block }: { block: Block }) {
     case 'callout': {
       const style =
         block.kind === 'warning'
-          ? { border: 'border-[#ecd5cf]', bg: 'bg-terracottal/40', label: 'text-terracotta', name: 'Warning' }
+          ? { border: 'border-terraline', bg: 'bg-terracottal/40', label: 'text-terracotta', name: 'Warning' }
           : block.kind === 'history'
             ? { border: 'border-line2', bg: 'bg-paper2/60', label: 'text-ink3', name: 'A historical note' }
             : { border: 'border-bluep', bg: 'bg-bluel/40', label: 'text-blue', name: 'Insight' };
       return (
-        <div className={`my-5 border ${style.border} ${style.bg} px-4 py-3`}>
+        <div id={anchorId} className={`my-5 scroll-mt-24 border ${style.border} ${style.bg} px-4 py-3`}>
           <div className={`text-[11px] font-semibold uppercase tracking-wider mb-1 ${style.label}`}>{style.name}</div>
-          <div className="text-sm leading-relaxed">
+          <div className="reading-body text-sm leading-relaxed">
             <RichText text={block.text} />
           </div>
         </div>
@@ -288,7 +335,7 @@ export function BlockView({ block }: { block: Block }) {
     }
     case 'list':
       return (
-        <div className="my-4">
+        <div id={anchorId} className="my-4 scroll-mt-24">
           {block.title && <div className="font-medium text-ink mb-2 text-sm">{block.title}</div>}
           <ul className="space-y-1.5">
             {block.items.map((it, i) => (
@@ -302,7 +349,7 @@ export function BlockView({ block }: { block: Block }) {
       );
     case 'table':
       return (
-        <div className="my-5 overflow-x-auto slim-scroll">
+        <div id={anchorId} className="my-5 scroll-mt-24 overflow-x-auto slim-scroll">
           {block.title && <div className="font-medium text-ink mb-2 text-sm">{block.title}</div>}
           <table className="w-full border-collapse text-sm">
             <thead>
@@ -316,7 +363,7 @@ export function BlockView({ block }: { block: Block }) {
             </thead>
             <tbody>
               {block.rows.map((row, i) => (
-                <tr key={i} className={i % 2 ? 'bg-paper2/40' : 'bg-white'}>
+                <tr key={i} className={i % 2 ? 'bg-paper2/40' : 'bg-surface'}>
                   {row.map((cell, j) => (
                     <td key={j} className="border border-line px-3 py-1.5 text-ink2">
                       <RichText text={cell} />
@@ -332,7 +379,7 @@ export function BlockView({ block }: { block: Block }) {
       return <VizBlockLazy id={block.id} props={block.props} />;
     case 'figure':
       return (
-        <figure className="my-5 border border-dashed border-line2 bg-paper2/40 px-4 py-6 text-center">
+        <figure id={anchorId} className="my-5 scroll-mt-24 border border-dashed border-line2 bg-paper2/40 px-4 py-6 text-center">
           <Icon name="Image" size={24} className="mx-auto text-ink4" />
           {block.title && <figcaption className="mt-2 text-sm font-medium text-ink">{block.title}</figcaption>}
           {block.caption && <figcaption className="mt-1 text-xs text-ink3">{block.caption}</figcaption>}
@@ -343,10 +390,15 @@ export function BlockView({ block }: { block: Block }) {
   }
 }
 
-// Lazy import keeps viz code out of the initial parse of this module.
-import { Viz } from './viz';
+// Lazy import keeps the visualization library out of the route and content
+// chunks until a lesson actually contains an interactive block.
+const LazyViz = lazy(() => import('./viz').then((module) => ({ default: module.Viz })));
 function VizBlockLazy({ id, props }: { id: string; props?: Record<string, unknown> }) {
-  return <Viz id={id} props={props} />;
+  return (
+    <Suspense fallback={<div className="my-5 border border-line bg-paper2/40 px-4 py-5 text-sm text-ink3">Loading interactive visualization…</div>}>
+      <LazyViz id={id} props={props} />
+    </Suspense>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -370,7 +422,7 @@ function MCQ({ q }: { q: PracticeQ }) {
         {q.options?.map((opt, i) => {
           const isCorrect = i === (q.correct ?? -1);
           const isPicked = i === picked;
-          let cls = 'border-line2 hover:border-blue bg-white';
+          let cls = 'border-line2 hover:border-blue bg-surface';
           if (picked !== null && isCorrect) cls = 'border-moss bg-mossl text-moss';
           else if (picked !== null && isPicked) cls = 'border-terracotta bg-terracottal text-terracotta';
           else if (picked !== null) cls = 'border-line bg-paper2 opacity-60';

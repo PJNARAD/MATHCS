@@ -106,7 +106,7 @@ export function PathDetailPage() {
                   <li key={cid} className="flex items-center gap-2.5">
                     <span
                       className={`flex h-5 w-5 shrink-0 items-center justify-center border ${
-                        complete ? 'bg-moss border-moss text-white' : 'bg-paper2 border-line2 text-transparent'
+                        complete ? 'bg-moss border-moss text-onaccent' : 'bg-paper2 border-line2 text-transparent'
                       }`}
                     >
                       {complete ? <Check size={13} strokeWidth={3} /> : <Circle size={11} />}

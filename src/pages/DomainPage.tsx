@@ -14,11 +14,11 @@ function ConceptRow({ concept }: { concept: Concept }) {
     <li>
       <Link
         to={`/concept/${concept.id}`}
-        className="group flex items-start gap-3 border border-line bg-white px-3.5 py-3 transition-colors hover:border-bluep hover:bg-bluel/30"
+        className="group flex items-start gap-3 border border-line bg-surface px-3.5 py-3 transition-colors hover:border-bluep hover:bg-bluel/30"
       >
         <span
           className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border ${
-            done ? 'bg-moss border-moss text-white' : 'bg-paper2 border-line2 text-transparent'
+            done ? 'bg-moss border-moss text-onaccent' : 'bg-paper2 border-line2 text-transparent'
           }`}
         >
           <Check size={13} strokeWidth={3} />
@@ -47,7 +47,7 @@ function TopicSection({ topic, children }: { topic: Concept; children: Concept[]
             {topic.title}
           </h2>
           <LevelBadge level={topic.level} />
-          {done && <span className="chip bg-mossl text-moss border-[#cfe0d4]">completed</span>}
+          {done && <span className="chip bg-mossl text-moss border-mossline">completed</span>}
         </div>
         <p className="mt-1 text-sm leading-relaxed text-ink2 line-clamp-2">{topic.summary}</p>
       </Link>

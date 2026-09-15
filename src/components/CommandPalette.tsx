@@ -103,7 +103,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
         role="dialog"
         aria-modal="true"
         aria-label="Search MathCS"
-        className="w-full max-w-xl border border-line2 bg-white shadow-pop"
+        className="w-full max-w-xl border border-line2 bg-surface shadow-pop"
       >
         <div className="flex items-center gap-2 border-b border-line px-3 py-2">
           <Search size={15} className="text-ink4" />
