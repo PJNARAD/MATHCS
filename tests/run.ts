@@ -8,6 +8,11 @@ import { eigen2, det2, inv2, rref, solveLinear, leastSquares, mat2Mul } from '..
 import { mean, std, binom, normalCdf2, correlation, linreg, entropy, mulberry32 } from '../src/lib/stat';
 import { readFileSync, readdirSync } from 'node:fs';
 import { allConcepts, conceptMap, getConcept } from '../src/lib/concepts';
+import { serializeConceptIndex } from '../src/lib/concept-index-file';
+import { conceptIndex } from '../src/data/concept-index';
+import {
+  clearConceptCache, domainsWithContent, loadableDomains, loadConcept, readConcept,
+} from '../src/lib/concept-loader';
 import { domains } from '../src/data/domains';
 import { fields } from '../src/data/fields';
 import { paths } from '../src/data/paths';
@@ -509,6 +514,56 @@ console.log('bundle D token and delivery guards');
   ok('manifest advertises maskable icons', manifest.includes('purpose') && manifest.includes('maskable') && manifest.includes('icon-512.png'));
   ok('service worker caches the shell and serves deep links offline', sw.includes("event.request.mode === 'navigate'") && sw.includes('caches.match(SHELL)') && sw.includes('staleWhileRevalidate'));
   ok('production-only service-worker registration is guarded', readFileSync('src/main.tsx', 'utf8').includes('import.meta.env.PROD'));
+}
+
+console.log('concept index + lazy domain loading (bundle split)');
+{
+  const committed = readFileSync('src/data/concept-index.ts', 'utf8');
+  ok('the committed concept index matches the content files', committed === serializeConceptIndex(allConcepts));
+  ok('the index has one entry per concept', conceptIndex.length === allConcepts.length);
+  ok('index ids match the registry exactly, in order', conceptIndex.every((e, i) => e.id === allConcepts[i].id));
+  ok('index titles, domains and levels match the registry',
+    conceptIndex.every((e, i) => e.title === allConcepts[i].title && e.domain === allConcepts[i].domain && e.level === allConcepts[i].level));
+  ok('index counts match the registry',
+    conceptIndex.every((e, i) => e.practiceCount === allConcepts[i].practice.length && e.blockCount === allConcepts[i].content.length));
+  ok('the index carries no lesson content', conceptIndex.every((e) => !('content' in e) && !('practice' in e)));
+
+  // Nothing the app ships may pull the whole registry in: that is the split.
+  const shipped = readdirSync('src', { recursive: true })
+    .filter((f): f is string => typeof f === 'string' && /\.tsx?$/.test(f))
+    .map((f) => `src/${f}`);
+  const offenders = shipped.filter((f) => /from '[^']*lib\/concepts'/.test(readFileSync(f, 'utf8')));
+  ok('no shipped module imports the static registry', offenders.length === 0, offenders.join(', '));
+  ok('the shipped index imports no domain module', !/data\/concepts/.test(readFileSync('src/data/concept-index.ts', 'utf8')));
+  const loaderSrc = readFileSync('src/lib/concept-loader.ts', 'utf8');
+  ok('the loader reaches content only through dynamic import()',
+    /import\('\.\.\/data\/concepts\//.test(loaderSrc) && !/from '\.\.\/data\/concepts\//.test(loaderSrc));
+  ok('every domain in the index has a lazy loader', [...domainsWithContent].every((d) => loadableDomains.includes(d)));
+  ok('no loader is dead weight', loadableDomains.length === domainsWithContent.size);
+
+  // The lazy path returns real lessons, and suspends before it can.
+  clearConceptCache();
+  ok('readConcept returns undefined for an unknown id', readConcept('no-such-concept') === undefined);
+  let suspended = false;
+  try {
+    readConcept('partial-orders');
+  } catch (thrown) {
+    suspended = typeof (thrown as { then?: unknown } | null)?.then === 'function';
+  }
+  ok('readConcept suspends (throws a promise) before the chunk arrives', suspended);
+  const body = await loadConcept('partial-orders');
+  ok('loadConcept returns the real lesson with its content', body?.id === 'partial-orders' && body.content.length === 8 && body.practice.length === 5);
+  ok('once loaded, readConcept is synchronous', readConcept('partial-orders')?.title === body?.title);
+
+  let bodiesMatch = true;
+  for (const domain of domainsWithContent) {
+    const entry = conceptIndex.find((e) => e.domain === domain)!;
+    const concept = await loadConcept(entry.id);
+    if (!concept || concept.title !== entry.title || concept.content.length !== entry.blockCount) bodiesMatch = false;
+  }
+  ok('every domain loads through the lazy loader', true);
+  ok('loaded bodies match the index entry they stand for', bodiesMatch);
+  ok('loading an unknown concept resolves to undefined', (await loadConcept('no-such-concept')) === undefined);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

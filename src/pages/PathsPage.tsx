@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Check, Circle } from 'lucide-react';
 import { paths } from '../data/paths';
 import { fields } from '../data/fields';
-import { getConcept } from '../lib/concepts';
+import { conceptInfo } from '../lib/concept-loader';
 import { Icon } from '../components/ui';
 import { useStore } from '../lib/store';
 
@@ -100,7 +100,7 @@ export function PathDetailPage() {
             </div>
             <ul className="mt-3 grid gap-2 sm:grid-cols-2">
               {stage.concepts.map((cid) => {
-                const c = getConcept(cid);
+                const c = conceptInfo(cid);
                 const complete = state.completed.includes(cid);
                 return (
                   <li key={cid} className="flex items-center gap-2.5">

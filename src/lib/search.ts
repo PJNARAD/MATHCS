@@ -7,7 +7,7 @@
 // nothing at all.
 // ---------------------------------------------------------------------------
 
-import { allConcepts } from './concepts';
+import { conceptIndex } from '../data/concept-index';
 import { domains } from '../data/domains';
 import { fields } from '../data/fields';
 import { paths } from '../data/paths';
@@ -94,7 +94,7 @@ export function searchDocs(query: string, docs: SearchDoc[], limit = 12): Scored
 export function buildSearchDocs(): SearchDoc[] {
   const docs: SearchDoc[] = [];
 
-  for (const c of allConcepts) {
+  for (const c of conceptIndex) {
     docs.push({
       id: c.id,
       kind: 'concept',

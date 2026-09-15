@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { domains } from '../data/domains';
 import { fields } from '../data/fields';
-import { getConcept } from '../lib/concepts';
+import { conceptInfo, readConcept } from '../lib/concept-loader';
 import { BlockView, ConceptLink, LevelBadge, PrereqLine } from '../components/ui';
 import { useStore } from '../lib/store';
 import { useToast } from '../components/Toast';
@@ -16,7 +16,7 @@ import { Practice } from '../components/ui';
 export function ConceptPage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
-  const concept = getConcept(id);
+  const concept = readConcept(id);
   const {
     isComplete, toggleComplete, isBookmarked, toggleBookmark, visitConcept,
   } = useStore();
@@ -253,7 +253,7 @@ export function ConceptPage() {
             {concept.next && concept.next.length > 0 && (
               <div className="no-print mt-8">
                 <Link to={`/concept/${concept.next[0]}`} className="btn-primary group">
-                  Continue: {getConcept(concept.next[0])?.title ?? concept.next[0]}
+                  Continue: {conceptInfo(concept.next[0])?.title ?? concept.next[0]}
                   <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
                 </Link>
               </div>
@@ -288,7 +288,7 @@ export function ConceptPage() {
 }
 
 function PracticeSection({ conceptId }: { conceptId: string }) {
-  const c = getConcept(conceptId);
+  const c = readConcept(conceptId);
   if (!c) return null;
   return <Practice concept={c} />;
 }

@@ -1079,6 +1079,385 @@ console.log("max flow = " + total);
 console.log("min cut: vertices reachable from s = {" + Object.keys(reachable).join(", ") + "}");`,
     output: 'round 1: s->a + a->t  bottleneck = 2  flow = 2\nround 2: s->b + b->t  bottleneck = 2  flow = 4\nround 3: s->a + a->b + b->t  bottleneck = 1  flow = 5\nmax flow = 5\nmin cut: vertices reachable from s = {s}',
   },
+  {
+    id: 'relation-matrix',
+    conceptId: 'relation-properties',
+    title: 'The four properties, read off one matrix',
+    blurb: 'Build the Boolean matrix of “divides” and let the machine check reflexivity, symmetry, antisymmetry and transitivity in one line each.',
+    code: `const A = [2, 3, 4, 6, 12];
+const M = A.map(a => A.map(b => (b % a === 0 ? 1 : 0)));
+const transpose = X => X[0].map((_, j) => X.map(row => row[j]));
+const booleanProduct = (X, Y) => X.map(row => Y[0].map((_, j) => (row.some((v, k) => v && Y[k][j]) ? 1 : 0)));
+
+const equal = (X, Y) => JSON.stringify(X) === JSON.stringify(Y);
+const reflexive = M.every((row, i) => row[i] === 1);                                  // diagonal is all 1s
+const symmetric = equal(M, transpose(M));                                             // M = M^T
+const antisymmetric = M.every((row, i) => row.every((v, j) => !(v === 1 && i !== j && M[j][i] === 1)));
+const transitive = booleanProduct(M, M).every((row, i) => row.every((v, j) => v <= M[i][j]));  // M^2 <= M
+
+M.forEach(row => console.log(row.join(" ")));
+console.log("reflexive " + reflexive + " | symmetric " + symmetric + " | antisymmetric " + antisymmetric + " | transitive " + transitive);
+console.log("profile: reflexivity, antisymmetry and transitivity hold and symmetry fails -> partial order");`,
+    output: '1 0 1 1 1\n0 1 0 1 1\n0 0 1 0 1\n0 0 0 1 1\n0 0 0 0 1\nreflexive true | symmetric false | antisymmetric true | transitive true\nprofile: reflexivity, antisymmetry and transitivity hold and symmetry fails -> partial order',
+  },
+  {
+    id: 'equivalence-classes',
+    conceptId: 'equivalence-relations',
+    title: 'Five boxes, computed by one modulo',
+    blurb: 'Congruence mod 5 files integers into classes; the last two lines show why arithmetic on classes is well defined.',
+    code: `const mod5 = n => ((n % 5) + 5) % 5;   // canonical representative of the class of n
+const values = [-7, -1, 0, 3, 8, 12, 17];
+
+const classes = {};
+for (const n of values) {
+  const c = mod5(n);
+  (classes[c] = classes[c] || []).push(n);
+}
+for (const c of Object.keys(classes).sort()) console.log("class [" + c + "] = {" + classes[c].join(", ") + "}");
+
+const filed = Object.values(classes).reduce((s, xs) => s + xs.length, 0);
+console.log("elements filed " + filed + " of " + values.length + " | nonempty classes " + Object.keys(classes).length);
+
+const a1 = 3, b1 = 12, a2 = 8, b2 = 17;
+console.log("class(" + a1 + ") = " + mod5(a1) + " and class(" + b1 + ") = " + mod5(b1) + " -> " + a1 + " + " + b1 + " = " + (a1 + b1) + " lands in class " + mod5(a1 + b1));
+console.log("class(" + a2 + ") = " + mod5(a2) + " and class(" + b2 + ") = " + mod5(b2) + " -> " + a2 + " + " + b2 + " = " + (a2 + b2) + " lands in class " + mod5(a2 + b2));
+console.log("same input classes, same output class: " + (mod5(a1 + b1) === mod5(a2 + b2)));`,
+    output: 'class [0] = {0}\nclass [2] = {12, 17}\nclass [3] = {-7, 3, 8}\nclass [4] = {-1}\nelements filed 7 of 7 | nonempty classes 4\nclass(3) = 3 and class(12) = 2 -> 3 + 12 = 15 lands in class 0\nclass(8) = 3 and class(17) = 2 -> 8 + 17 = 25 lands in class 0\nsame input classes, same output class: true',
+  },
+  {
+    id: 'linear-extension-count',
+    conceptId: 'partial-orders',
+    title: 'Counting the linear extensions of a poset',
+    blurb: 'A five-task dependency poset has 120 orderings and exactly 2 that respect the constraints — the two incomparable tasks can go either way.',
+    code: `// a before b and c; b and c before d; d before e
+const after = { a: ["b", "c"], b: ["d"], c: ["d"], d: ["e"], e: [] };
+const tasks = ["a", "b", "c", "d", "e"];
+const leq = (x, y) => x === y || after[x].some(z => leq(z, y));   // transitive closure of the edge relation
+
+const permutations = arr => arr.length <= 1 ? [arr] : arr.flatMap((x, i) =>
+  permutations([...arr.slice(0, i), ...arr.slice(i + 1)]).map(p => [x, ...p]));
+
+const valid = permutations(tasks).filter(order =>
+  order.every((t, i) => order.slice(i + 1).every(u => !leq(u, t))));
+
+console.log("valid build orders:");
+valid.forEach(order => console.log("  " + order.join(" -> ")));
+console.log("count: " + valid.length + " of " + permutations(tasks).length + " orderings");
+
+const incomparable = [];
+for (const x of tasks) for (const y of tasks) if (x < y && !leq(x, y) && !leq(y, x)) incomparable.push(x + "~" + y);
+console.log("incomparable pairs: " + incomparable.join(" "));`,
+    output: 'valid build orders:\n  a -> b -> c -> d -> e\n  a -> c -> b -> d -> e\ncount: 2 of 120 orderings\nincomparable pairs: b~c',
+  },
+  {
+    id: 'boolean-laws',
+    conceptId: 'boolean-basics',
+    title: 'Every law, checked by exhaustive evaluation',
+    blurb: 'Nine identities of Boolean algebra, each verified on all 8 rows of its truth table — no algebra required, only brute force.',
+    code: `const rows = n => Array.from({ length: 2 ** n }, (_, i) => Array.from({ length: n }, (_, b) => (i >> (n - 1 - b)) & 1));
+const eq = (f, g, n) => rows(n).every(v => f(v) === g(v));
+
+// bits are 0/1, so OR is "max" and AND is "min" written with || and &&
+const NOT = x => 1 - x;
+const laws = [
+  ["idempotent",   v => v[0] || v[0],               v => v[0],                   1],
+  ["identity",     v => v[0] || 0,                  v => v[0],                   1],
+  ["domination",   v => v[0] || 1,                  () => 1,                     1],
+  ["complement",   v => v[0] || NOT(v[0]),          () => 1,                     1],
+  ["distributive", v => v[0] && (v[1] || v[2]),     v => (v[0] && v[1]) || (v[0] && v[2]), 3],
+  ["absorption",   v => v[0] || (v[0] && v[1]),     v => v[0],                   2],
+  ["De Morgan",    v => NOT(v[0] && v[1]),          v => NOT(v[0]) || NOT(v[1]),  2],
+  ["consensus",    v => (v[0] && v[1]) || (NOT(v[0]) && v[2]) || (v[1] && v[2]),
+                   v => (v[0] && v[1]) || (NOT(v[0]) && v[2]),                   3],
+  ["involution",   v => NOT(NOT(v[0])),             v => v[0],                   1],
+];
+for (const [name, left, right, n] of laws) {
+  console.log(name.padEnd(13) + " holds on all " + 2 ** n + " rows: " + eq(left, right, n));
+}
+console.log("distinct Boolean functions of 3 variables: " + 2 ** (2 ** 3));`,
+    output: 'idempotent    holds on all 2 rows: true\nidentity      holds on all 2 rows: true\ndomination    holds on all 2 rows: true\ncomplement    holds on all 2 rows: true\ndistributive  holds on all 8 rows: true\nabsorption    holds on all 4 rows: true\nDe Morgan     holds on all 4 rows: true\nconsensus     holds on all 8 rows: true\ninvolution    holds on all 2 rows: true\ndistinct Boolean functions of 3 variables: 256',
+  },
+  {
+    id: 'nand-universal',
+    conceptId: 'logic-gates',
+    title: 'Gate libraries, verified gate by gate',
+    blurb: 'OR from three NANDs, XOR from four, then a full adder — with each network checked against its truth table instead of trusted.',
+    code: `const NAND = (a, b) => 1 - (a && b);
+const NOT = a => NAND(a, a);
+const OR = (a, b) => NAND(NAND(a, a), NAND(b, b));
+const AND = (a, b) => NOT(NAND(a, b));
+const XOR = (a, b) => NAND(NAND(a, NAND(a, b)), NAND(b, NAND(a, b)));
+
+const rows = n => Array.from({ length: 2 ** n }, (_, i) => Array.from({ length: n }, (_, b) => (i >> (n - 1 - b)) & 1));
+const check = (name, built, ref, n) => {
+  const ok = rows(n).every(v => built(...v) === ref(...v));
+  console.log(name.padEnd(22) + "matches its truth table: " + ok);
+};
+
+check("NOT built from NAND", NOT, a => (a ? 0 : 1), 1);
+check("OR built from NAND", OR, (a, b) => a || b, 2);
+check("XOR built from NAND", XOR, (a, b) => (a === b ? 0 : 1), 2);
+
+const sum = (a, b, cin) => XOR(XOR(a, b), cin);
+const carry = (a, b, cin) => OR(OR(AND(a, b), AND(a, cin)), AND(b, cin));
+let correct = 0, bad = "";
+for (let i = 0; i < 8; i++) {
+  const a = (i >> 2) & 1, b = (i >> 1) & 1, cin = i & 1;
+  const want = a + b + cin;
+  if (sum(a, b, cin) + 2 * carry(a, b, cin) === want) correct++;
+  else bad = "(" + a + "," + b + "," + cin + ")";
+}
+console.log("full adder: " + correct + "/8 rows correct" + (bad ? " first failure " + bad : ""));
+console.log("gate budget for one adder: 2 XOR (8 NANDs) + 2 AND (4 NANDs) + 1 OR (3 NANDs) = 15 NANDs");`,
+    output: 'NOT built from NAND   matches its truth table: true\nOR built from NAND    matches its truth table: true\nXOR built from NAND   matches its truth table: true\nfull adder: 8/8 rows correct\ngate budget for one adder: 2 XOR (8 NANDs) + 2 AND (4 NANDs) + 1 OR (3 NANDs) = 15 NANDs',
+  },
+  {
+    id: 'kmap-minimize',
+    conceptId: 'boolean-simplification',
+    title: 'Quine–McCluskey on a 3-variable function',
+    blurb: 'The K-map done by machine: merge minterms that differ in one literal until nothing merges, then read off the prime implicants.',
+    code: `const minterms = [0, 1, 4, 5];          // f = 1 on these rows of (a, b, c)
+const names = ["a", "b", "c"];
+const term = (m, keep) => m.toString(2).padStart(3, "0")
+  .split("").map((bit, i) => keep[i] ? (bit === "1" ? names[i] : names[i] + "'") : "").join("");
+
+let groups = minterms.map(m => ({ mask: 0b111, bits: m, covers: [m] }));
+const primes = [];
+while (groups.length) {
+  const merged = [], used = new Set();
+  for (let i = 0; i < groups.length; i++) {
+    for (let j = i + 1; j < groups.length; j++) {
+      const x = groups[i], y = groups[j];
+      const diff = x.bits ^ y.bits;
+      if (x.mask === y.mask && (diff & (diff - 1)) === 0 && diff !== 0) {
+        merged.push({ mask: x.mask & ~diff, bits: x.bits & ~diff, covers: [...x.covers, ...y.covers] });
+        used.add(i); used.add(j);
+      }
+    }
+  }
+  groups.forEach((g, i) => { if (!used.has(i) && !primes.some(p => p.mask === g.mask && p.bits === g.bits)) primes.push(g); });
+  const next = [];
+  for (const m of merged) if (!next.some(g => g.mask === m.mask && g.bits === m.bits)) next.push(m);
+  groups = next;
+}
+
+for (const p of primes) {
+  const keep = names.map((_, i) => (p.mask & (1 << (2 - i))) !== 0);
+  console.log("prime implicant: " + term(p.bits, keep) + "   covers rows " + p.covers.sort((x, y) => x - y).join(", "));
+}
+const literals = primes.reduce((s, p) => s + p.mask.toString(2).replace(/0/g, "").length, 0);
+console.log("canonical form: " + minterms.length + " terms, " + minterms.length * 3 + " literals");
+console.log("minimized: " + primes.map(p => term(p.bits, names.map((_, i) => (p.mask & (1 << (2 - i))) !== 0))).join(" + ") +
+            "  ->  " + primes.length + " term, " + literals + " literal");`,
+    output: 'prime implicant: b\'   covers rows 0, 1, 4, 5\ncanonical form: 4 terms, 12 literals\nminimized: b\'  ->  1 term, 1 literal',
+  },
+  {
+    id: 'hanoi-moves',
+    conceptId: 'recursion',
+    title: 'Towers of Hanoi: the definition runs',
+    blurb: 'Three lines of recursion move a tower; the move count doubles with every extra disc.',
+    code: `const moves = [];
+function hanoi(n, from, to, via) {
+  if (n === 0) return;
+  hanoi(n - 1, from, via, to);
+  moves.push(from + "->" + to);
+  hanoi(n - 1, via, to, from);
+}
+
+hanoi(3, "A", "C", "B");
+console.log("n = 3: " + moves.join(" "));
+console.log("moves for n = 3: " + moves.length);
+
+let closes = true;
+for (let n = 1; n <= 12; n++) {
+  moves.length = 0;
+  hanoi(n, "A", "C", "B");
+  if (moves.length !== 2 ** n - 1) closes = false;
+}
+console.log("M(n) = 2^n - 1 for n = 1..12: " + closes);
+console.log("n = 10 needs " + (2 ** 10 - 1) + " moves");`,
+    output: 'n = 3: A->C A->B C->B A->C B->A B->C A->C\nmoves for n = 3: 7\nM(n) = 2^n - 1 for n = 1..12: true\nn = 10 needs 1023 moves',
+  },
+  {
+    id: 'no-two-ones',
+    conceptId: 'recursive-definitions',
+    title: 'Free monoids from a recursive definition',
+    blurb: 'Counting length-n binary strings with no two consecutive 1s: split on the first symbol and Fibonacci appears.',
+    code: `const S = [1, 2];                       // S[0] = empty string, S[1] = "0" and "1"
+for (let n = 2; n <= 20; n++) S.push(S[n - 1] + S[n - 2]);
+
+function brute(n) {
+  let count = 0;
+  for (let m = 0; m < 2 ** n; m++) {
+    const bits = m.toString(2).padStart(n, "0");
+    if (!bits.includes("11")) count++;
+  }
+  return count;
+}
+
+let matches = true;
+for (let n = 1; n <= 14; n++) if (S[n] !== brute(n)) matches = false;
+console.log("S(1..8) = " + S.slice(1, 9).join(", "));
+console.log("recursion matches brute force for n = 1..14: " + matches);
+console.log("S(20) = " + S[20] + ", and that is Fibonacci F(22) = 17711");`,
+    output: 'S(1..8) = 2, 3, 5, 8, 13, 21, 34, 55\nrecursion matches brute force for n = 1..14: true\nS(20) = 17711, and that is Fibonacci F(22) = 17711',
+  },
+  {
+    id: 'master-theorem-table',
+    conceptId: 'solving-recurrences',
+    title: 'Master Theorem: classify by comparing the exponents',
+    blurb: 'One comparison of k against log_b(a) decides each of the classic recurrences.',
+    code: `const rows = [
+  { name: "binary search", a: 1, b: 2, k: 0 },
+  { name: "merge sort", a: 2, b: 2, k: 1 },
+  { name: "Karatsuba", a: 3, b: 2, k: 1 },
+  { name: "Strassen", a: 7, b: 2, k: 2 },
+  { name: "3T(n/4) + n^2", a: 3, b: 4, k: 2 },
+];
+
+for (const r of rows) {
+  const c = Math.log(r.a) / Math.log(r.b);
+  const eps = 1e-9;
+  const which = Math.abs(r.k - c) < eps ? 2 : r.k < c ? 1 : 3;
+  const answer =
+    which === 1 ? "Theta(n^" + c.toFixed(2) + ")" :
+    which === 2 ? (r.k === 0 ? "Theta(log n)" : "Theta(n" + (r.k === 1 ? "" : "^" + r.k) + " log n)") :
+    "Theta(n" + (r.k === 1 ? "" : "^" + r.k) + ")";
+  console.log(r.name + ": k=" + r.k + ", log_b a=" + c.toFixed(3) + " -> case " + which + ", " + answer);
+}`,
+    output: 'binary search: k=0, log_b a=0.000 -> case 2, Theta(log n)\nmerge sort: k=1, log_b a=1.000 -> case 2, Theta(n log n)\nKaratsuba: k=1, log_b a=1.585 -> case 1, Theta(n^1.58)\nStrassen: k=2, log_b a=2.807 -> case 1, Theta(n^2.81)\n3T(n/4) + n^2: k=2, log_b a=0.792 -> case 3, Theta(n^2)',
+  },
+  {
+    id: 'recursion-tree-levels',
+    conceptId: 'recursion-trees',
+    title: 'Level sums for 3T(n/4) + n^2',
+    blurb: 'The root dominates, and the whole tree costs only 16/13 of the root — the geometric series made numeric.',
+    code: `function levels(n, a, b, k) {
+  const out = [];
+  let size = n, count = 1;
+  for (let i = 0; i < 20 && size >= 1; i++) {
+    out.push({ i, count, size, work: count * Math.pow(size, k) });
+    size = size / b;
+    count = count * a;
+  }
+  return out;
+}
+
+const n = 256, a = 3, b = 4, k = 2;
+const L = levels(n, a, b, k);
+for (const l of L) {
+  console.log("level " + l.i + ": " + l.count + (l.count === 1 ? " node" : " nodes") + " of size " + l.size.toFixed(2) + ", work = " + l.work.toFixed(1));
+}
+const total = L.reduce((s, l) => s + l.work, 0);
+console.log("sum over all levels: " + total.toFixed(1));
+console.log("geometric limit: 16/13 * n^2 = " + (16 / 13 * n * n).toFixed(1) + ", of which the root contributes " + L[0].work.toFixed(1));`,
+    output: 'level 0: 1 node of size 256.00, work = 65536.0\nlevel 1: 3 nodes of size 64.00, work = 12288.0\nlevel 2: 9 nodes of size 16.00, work = 2304.0\nlevel 3: 27 nodes of size 4.00, work = 432.0\nlevel 4: 81 nodes of size 1.00, work = 81.0\nsum over all levels: 80641.0\ngeometric limit: 16/13 * n^2 = 80659.7, of which the root contributes 65536.0',
+  },
+  {
+    id: 'edit-distance-dp',
+    conceptId: 'dynamic-programming',
+    title: 'Edit distance as a filled table',
+    blurb: 'Kitten to sitting in three edits, with the whole DP grid printed: 56 states, three options each.',
+    code: `function editTable(a, b) {
+  const d = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
+  for (let i = 0; i <= a.length; i++) d[i][0] = i;
+  for (let j = 0; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++)
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d;
+}
+
+const a = "kitten", b = "sitting";
+const d = editTable(a, b);
+console.log("      " + ["", ...b].map((c) => c.padStart(3)).join(""));
+d.forEach((row, i) => console.log((i === 0 ? " " : a[i - 1]) + "  " + row.map((v) => String(v).padStart(3)).join("")));
+console.log("states filled: " + (a.length + 1) + " x " + (b.length + 1) + " = " + ((a.length + 1) * (b.length + 1)));
+console.log("edit distance " + a + " -> " + b + ": " + d[a.length][b.length]);`,
+    output: '           s  i  t  t  i  n  g\n     0  1  2  3  4  5  6  7\nk    1  1  2  3  4  5  6  7\ni    2  2  1  2  3  4  5  6\nt    3  3  2  1  2  3  4  5\nt    4  4  3  2  1  2  3  4\ne    5  5  4  3  2  2  3  4\nn    6  6  5  4  3  3  2  3\nstates filled: 7 x 8 = 56\nedit distance kitten -> sitting: 3',
+  },
+  {
+    id: 'growth-race',
+    conceptId: 'growth-rates',
+    title: 'The wall, in numbers',
+    blurb: 'What each growth rate costs at n = 10^6 and 10^9, at a billion operations per second.',
+    code: `const RATE = 1e9;                       // operations per second
+const human = (ops) => {
+  const seconds = ops / RATE;
+  if (seconds < 1e-3) return "< 1 millisecond";
+  if (seconds < 1) {
+    const ms = Math.round(seconds * 1000);
+    return ms + (ms === 1 ? " millisecond" : " milliseconds");
+  }
+  if (seconds < 120) return seconds.toFixed(1) + " seconds";
+  if (seconds < 7200) return (seconds / 60).toFixed(0) + " minutes";
+  if (seconds < 3.2e7) return (seconds / 3600).toFixed(0) + " hours";
+  return (seconds / 3.15e7).toExponential(1) + " years";
+};
+
+for (const n of [1e3, 1e6]) {
+  const rows = [
+    ["n", n],
+    ["n log2 n", n * Math.log2(n)],
+    ["n^2", n * n],
+    ["n^3", n * n * n],
+  ];
+  console.log("n = " + n.toExponential(0));
+  for (const [name, ops] of rows) {
+    console.log("  " + name.padEnd(9) + ops.toExponential(2).padStart(9) + " ops   " + human(ops));
+  }
+}
+console.log("2^n and n! are not printed: 2^100 is about 1.3e30, 20! is about 2.4e18");`,
+    output: 'n = 1e+3\n  n          1.00e+3 ops   < 1 millisecond\n  n log2 n   9.97e+3 ops   < 1 millisecond\n  n^2        1.00e+6 ops   1 millisecond\n  n^3        1.00e+9 ops   1.0 seconds\nn = 1e+6\n  n          1.00e+6 ops   1 millisecond\n  n log2 n   1.99e+7 ops   20 milliseconds\n  n^2       1.00e+12 ops   17 minutes\n  n^3       1.00e+18 ops   3.2e+1 years\n2^n and n! are not printed: 2^100 is about 1.3e30, 20! is about 2.4e18',
+  },
+  {
+    id: 'amortized-append',
+    conceptId: 'asymptotic-properties',
+    title: 'Amortised O(1): the doubling array',
+    blurb: 'Count the copies when a dynamic array doubles: the total is under 2n, so each append costs O(1) on average.',
+    code: `let capacity = 1, size = 0, copies = 0, worst = 0;
+const n = 1000;
+for (let append = 0; append < n; append++) {
+  if (size === capacity) {
+    copies += size;                     // reallocate and copy everything
+    worst = Math.max(worst, size);
+    capacity *= 2;
+  }
+  size++;
+}
+console.log("appends: " + size);
+console.log("copies in total: " + copies + "  (bound 2n = " + 2 * n + ")");
+console.log("most expensive single append: " + worst + " copies");
+console.log("average copies per append: " + (copies / size).toFixed(3) + " -> O(1) amortised");
+console.log("final capacity: " + capacity + " (under 2n = " + 2 * n + ")");`,
+    output: 'appends: 1000\ncopies in total: 1023  (bound 2n = 2000)\nmost expensive single append: 512 copies\naverage copies per append: 1.023 -> O(1) amortised\nfinal capacity: 1024 (under 2n = 2000)',
+  },
+  {
+    id: 'binary-search-halving',
+    conceptId: 'binary-search',
+    title: 'The halving bound, checked',
+    blurb: 'Worst-case comparisons of binary search on n items against ceil(log2(n+1)) — and the 40 steps a 10^12 capacity range needs.',
+    code: `function worstCaseComparisons(n) {
+  // target is the last element: the adversary keeps it in the surviving half every time.
+  let lo = 0, hi = n - 1, count = 0;
+  while (lo <= hi) {
+    const mid = lo + Math.floor((hi - lo) / 2);
+    count++;
+    if (mid === n - 1) break;
+    lo = mid + 1;
+  }
+  return count;
+}
+
+let tight = true;
+for (let n = 1; n <= 4096; n++) {
+  if (worstCaseComparisons(n) !== Math.ceil(Math.log2(n + 1))) tight = false;
+}
+console.log("worst case = ceil(log2(n+1)) for n = 1..4096: " + tight);
+console.log("n = 1 000 000 needs " + worstCaseComparisons(1000000) + " comparisons");
+console.log("a capacity range 1..10^12 needs " + Math.ceil(Math.log2(1e12)) + " feasibility tests");`,
+    output: 'worst case = ceil(log2(n+1)) for n = 1..4096: true\nn = 1 000 000 needs 20 comparisons\na capacity range 1..10^12 needs 40 feasibility tests',
+  },
 ];
 
 export const snippetById = (id: string): Snippet | undefined => snippets.find((s) => s.id === id);

@@ -2,12 +2,12 @@ import React from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Check, ChevronRight } from 'lucide-react';
 import { domains } from '../data/domains';
-import { childrenOf, conceptsForDomain, standaloneConcepts, topicsOf } from '../lib/concepts';
-import type { Concept } from '../data/types';
+import { childrenOfTopic, conceptsInDomain, standaloneInDomain, topicsInDomain } from '../lib/concept-loader';
+import type { ConceptIndexEntry } from '../lib/concept-loader';
 import { Icon, LevelBadge } from '../components/ui';
 import { useStore } from '../lib/store';
 
-function ConceptRow({ concept }: { concept: Concept }) {
+function ConceptRow({ concept }: { concept: ConceptIndexEntry }) {
   const { isComplete } = useStore();
   const done = isComplete(concept.id);
   return (
@@ -36,7 +36,7 @@ function ConceptRow({ concept }: { concept: Concept }) {
   );
 }
 
-function TopicSection({ topic, children }: { topic: Concept; children: Concept[] }) {
+function TopicSection({ topic, children }: { topic: ConceptIndexEntry; children: ConceptIndexEntry[] }) {
   const { isComplete } = useStore();
   const done = isComplete(topic.id);
   return (
@@ -76,9 +76,9 @@ export function DomainPage() {
     );
   }
 
-  const concepts = conceptsForDomain(domain.id);
-  const topics = topicsOf(domain.id);
-  const standalones = standaloneConcepts(domain.id);
+  const concepts = conceptsInDomain(domain.id);
+  const topics = topicsInDomain(domain.id);
+  const standalones = standaloneInDomain(domain.id);
 
   return (
     <div className="mx-auto max-w-wide px-4 py-10">
@@ -115,7 +115,7 @@ export function DomainPage() {
         <div className="mt-6">
           {topics.map((t) => (
             <TopicSection key={t.id} topic={t}>
-              {childrenOf(t.id, domain.id)}
+              {childrenOfTopic(t.id, domain.id)}
             </TopicSection>
           ))}
           {standalones.length > 0 && (
