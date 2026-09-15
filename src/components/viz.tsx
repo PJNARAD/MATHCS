@@ -7,6 +7,15 @@ import {
   euclidSteps, sieveSteps, factorize, primeFactorMap, isPrime, divisors, phi, numDivisorsFromFactors, rsaSetup,
 } from '../lib/numbertheory';
 import { InlineMath } from './TeX';
+import type { Mat2, Vec2 } from '../lib/linalg';
+import type { HuffmanNode } from '../lib/vizmath';
+import { mulberry32 } from '../lib/stat';
+import {
+  LANDSCAPES, MAP_PRESETS, POPULATIONS, TAYLOR_PRESETS,
+  applyMap, bayes, bayesCounts, cltRun, gdRun, getLandscape, getMapPreset, getPopulation,
+  getTaylorPreset, huffmanCodes, huffmanDecode, huffmanEncode, isPrefixFree, mapInfo,
+  normalOverlay, sampleFn, taylorApprox, taylorError, taylorTerm, transformedUnitSquare, turnDegrees,
+} from '../lib/vizmath';
 
 // ---------------------------------------------------------------------------
 // Shared shells
@@ -1377,6 +1386,1071 @@ function RsaViz({ props }: { props?: Record<string, unknown> }) {
 }
 
 // ---------------------------------------------------------------------------
+// 10. Matrix transformations of the plane
+// ---------------------------------------------------------------------------
+
+function num(x: number, d = 3): string {
+  if (!Number.isFinite(x)) return '—';
+  const v = Number(x.toFixed(d));
+  return Object.is(v, -0) ? '0' : String(v);
+}
+
+const SVG_INK = '#1B2A41';
+const SVG_BLUE = '#2B5C8A';
+const SVG_GOLD = '#8A6D2F';
+const SVG_TERRA = '#A9432E';
+const SVG_MOSS = '#3E7A4E';
+
+function MatrixTransformViz({ props }: { props?: Record<string, unknown> }) {
+  const initialPreset = (props?.preset as string | undefined) ?? 'shear';
+  const [pid, setPid] = useState(initialPreset);
+  const [m, setM] = useState<Mat2>(() => getMapPreset(initialPreset).matrix);
+  const [angle, setAngle] = useState(30);
+
+  const info = useMemo(() => mapInfo(m), [m]);
+  const SIZE = 340;
+  const WORLD = 3;
+  const k = SIZE / (2 * WORLD);
+  const P = (p: Vec2): [number, number] => [SIZE / 2 + p[0] * k, SIZE / 2 - p[1] * k];
+  const line = (a: Vec2, b: Vec2): string => {
+    const [x1, y1] = P(a);
+    const [x2, y2] = P(b);
+    return `M${x1.toFixed(2)},${y1.toFixed(2)}L${x2.toFixed(2)},${y2.toFixed(2)}`;
+  };
+  const arrow = (a: Vec2, b: Vec2, color: string, key: string, width = 2.2) => {
+    const [x1, y1] = P(a);
+    const [x2, y2] = P(b);
+    const ang = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);
+    const head = 8;
+    return (
+      <g key={key}>
+        <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={width} strokeLinecap="round" />
+        <polygon
+          points={`0,0 -${head},${head / 2.6} -${head},-${head / 2.6}`}
+          fill={color}
+          transform={`translate(${x2.toFixed(2)},${y2.toFixed(2)}) rotate(${ang.toFixed(2)})`}
+        />
+      </g>
+    );
+  };
+
+  const gridLines = Array.from({ length: 2 * WORLD + 1 }, (_, i) => i - WORLD);
+
+  const theta = (angle * Math.PI) / 180;
+  const v: Vec2 = [Math.cos(theta) * 1.7, Math.sin(theta) * 1.7];
+  const w = applyMap(m, v);
+  const turn = turnDegrees(m, v);
+
+  const set = (idx: 0 | 1 | 2 | 3, val: number) => {
+    setM((old) => {
+      const next: Mat2 = [...old] as Mat2;
+      next[idx] = val;
+      return next;
+    });
+    setPid('custom');
+  };
+
+  return (
+    <VizShell title="Linear maps on the plane" right={<span className="text-xs text-ink3 font-mono">det = {num(info.det, 3)}</span>}>
+      <div className="flex flex-wrap gap-1.5">
+        {MAP_PRESETS.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => { setPid(p.id); setM(p.matrix); }}
+            className={`chip cursor-pointer ${pid === p.id ? 'bg-bluel text-blue border-bluep' : 'hover:bg-paper2'}`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-3 grid gap-4 sm:grid-cols-[auto,1fr]">
+        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-[340px] max-w-full bg-white border border-line">
+          {/* image of the integer grid */}
+          <g stroke="#DCE8F2" strokeWidth={1}>
+            {gridLines.map((g) => (
+              <path key={`vx${g}`} d={line([g, -WORLD], [g, WORLD])} fill="none" />
+            ))}
+            {gridLines.map((g) => (
+              <path key={`hz${g}`} d={line([-WORLD, g], [WORLD, g])} fill="none" />
+            ))}
+          </g>
+          {/* untransformed grid */}
+          <g stroke="#ECE8DE" strokeWidth={1}>
+            {gridLines.map((g) => (
+              <path key={`ov${g}`} d={`M${P([g, -WORLD])[0]},0L${P([g, WORLD])[0]},${SIZE}`} fill="none" />
+            ))}
+            {gridLines.map((g) => (
+              <path key={`oh${g}`} d={`M0,${P([-WORLD, g])[1]}L${SIZE},${P([WORLD, g])[1]}`} fill="none" />
+            ))}
+          </g>
+          <g stroke="#E4E1D7" strokeWidth={1}>
+            <line x1={0} y1={SIZE / 2} x2={SIZE} y2={SIZE / 2} />
+            <line x1={SIZE / 2} y1={0} x2={SIZE / 2} y2={SIZE} />
+          </g>
+
+          {/* image of the unit square */}
+          <polygon
+            points={transformedUnitSquare(m).map((p) => P(p).join(',')).join(' ')}
+            fill="rgba(43,92,138,0.16)"
+            stroke={SVG_BLUE}
+            strokeWidth={1.4}
+          />
+
+          {/* eigenvectors */}
+          {info.eigenvalues.map((e, i) => {
+            const s = 2.4;
+            return (
+              <line
+                key={`eig${i}`}
+                x1={P([-e.vec[0] * s, -e.vec[1] * s])[0]}
+                y1={P([-e.vec[0] * s, -e.vec[1] * s])[1]}
+                x2={P([e.vec[0] * s, e.vec[1] * s])[0]}
+                y2={P([e.vec[0] * s, e.vec[1] * s])[1]}
+                stroke={SVG_TERRA}
+                strokeWidth={1.3}
+                strokeDasharray="5 4"
+              />
+            );
+          })}
+
+          {/* the test vector and its image */}
+          {arrow([0, 0], v, SVG_GOLD, 'v', 2.2)}
+          {arrow(v, w, '#C9A227', 'vw', 1.2)}
+          {arrow([0, 0], w, SVG_MOSS, 'w', 2.2)}
+
+          {/* images of the basis vectors */}
+          {arrow([0, 0], applyMap(m, [1, 0]), SVG_BLUE, 'e1', 2.6)}
+          {arrow([0, 0], applyMap(m, [0, 1]), '#1F4468', 'e2', 2.6)}
+        </svg>
+
+        <div className="min-w-[15rem]">
+          <div className="grid grid-cols-2 gap-2">
+            {(['a', 'b', 'c', 'd'] as const).map((lbl, i) => (
+              <label key={lbl} className="flex items-center gap-2 text-xs text-ink2">
+                <span className="font-mono w-3 text-ink">{lbl}</span>
+                <input
+                  type="range"
+                  min={-2}
+                  max={2}
+                  step={0.05}
+                  value={m[i]}
+                  onChange={(e) => set(i as 0 | 1 | 2 | 3, parseFloat(e.target.value))}
+                  className="w-full accent-blue"
+                />
+                <span className="font-mono w-10 text-right text-ink">{num(m[i], 2)}</span>
+              </label>
+            ))}
+          </div>
+
+          <label className="mt-3 flex items-center gap-2 text-xs text-ink2">
+            test vector angle
+            <input
+              type="range"
+              min={0}
+              max={360}
+              step={1}
+              value={angle}
+              onChange={(e) => setAngle(parseInt(e.target.value, 10))}
+              className="w-full accent-blue"
+            />
+            <span className="font-mono w-10 text-right text-ink">{angle}°</span>
+          </label>
+
+          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-ink2">
+            <span>area scale |det|</span><span className="font-mono text-ink text-right">{num(info.areaScale)}</span>
+            <span>trace</span><span className="font-mono text-ink text-right">{num(info.trace)}</span>
+            <span>orientation</span>
+            <span className="text-right font-mono text-ink">{info.orientationFlipped ? 'flipped' : 'kept'}</span>
+            <span>test vector turns</span><span className="font-mono text-ink text-right">{num(turn, 1)}°</span>
+          </div>
+
+          <div className="mt-3 border-t border-line pt-2 text-xs">
+            <div className="font-medium text-ink">Eigenvalues</div>
+            {info.eigenvalues.length > 0 ? (
+              <ul className="mt-1 space-y-0.5 font-mono text-ink2">
+                {info.eigenvalues.map((e, i) => (
+                  <li key={i}>
+                    λ{i + 1} = {num(e.lambda)} → dir ({num(e.vec[0], 2)}, {num(e.vec[1], 2)})
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-1 font-mono text-ink2">
+                complex: {num(info.complex?.re ?? 0)} ± {num(info.complex?.im ?? 0)}i — a rotation hides in here
+              </p>
+            )}
+          </div>
+
+          <p className="mt-3 text-xs leading-relaxed text-ink3">
+            {pid === 'custom' ? 'Your own matrix: watch the square area become |det| and see when the grid collapses.' : getMapPreset(pid).note}
+          </p>
+          {info.singular && (
+            <p className="mt-2 text-xs text-terracotta">
+              det = 0: the map squashes the plane onto a line, so information is destroyed and A⁻¹ cannot exist.
+            </p>
+          )}
+        </div>
+      </div>
+    </VizShell>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 11. Taylor polynomials
+// ---------------------------------------------------------------------------
+
+function TaylorViz({ props }: { props?: Record<string, unknown> }) {
+  const [pid, setPid] = useState((props?.fn as string | undefined) ?? 'sin');
+  const [order, setOrder] = useState((props?.order as number | undefined) ?? 3);
+  const [xTarget, setXTarget] = useState((props?.x as number | undefined) ?? 1.6);
+  const preset = getTaylorPreset(pid);
+
+  const [xLo, xHi] = preset.interval;
+  const xStar = Math.min(Math.max(xTarget, xLo), xHi);
+  const W = 400;
+  const H = 260;
+  const PAD = 26;
+
+  const curves = useMemo(() => {
+    const fPts = sampleFn(preset.fn, xLo, xHi, 320);
+    const pPts = sampleFn((x) => taylorApprox(preset, order, x), xLo, xHi, 320);
+    const ys = [...fPts, ...pPts].map(([, y]) => y).filter((y) => Number.isFinite(y) && Math.abs(y) < 40);
+    const lo = Math.max(-8, Math.min(...ys, 0));
+    const hi = Math.min(8, Math.max(...ys, 0));
+    return { fPts, pPts, yLo: lo, yHi: hi };
+  }, [preset, order, xLo, xHi]);
+
+  const { fPts, pPts, yLo, yHi } = curves;
+  const X = (x: number): number => PAD + ((x - xLo) / (xHi - xLo)) * (W - 2 * PAD);
+  const Y = (y: number): number => H - PAD - ((y - yLo) / (yHi - yLo)) * (H - 2 * PAD);
+
+  const polyline = (pts: Vec2[]): string => {
+    let d = '';
+    let pen = false;
+    for (const [x, y] of pts) {
+      if (!Number.isFinite(y) || y < yLo - 0.5 || y > yHi + 0.5) { pen = false; continue; }
+      d += `${pen ? 'L' : 'M'}${X(x).toFixed(2)},${Y(y).toFixed(2)}`;
+      pen = true;
+    }
+    return d;
+  };
+
+  const fAt = preset.fn(xStar);
+  const pAt = taylorApprox(preset, order, xStar);
+  const err = Math.abs(fAt - pAt);
+  const worstNear = useMemo(() => taylorError(preset, order, [-1, 1]), [preset, order]);
+  const worst = useMemo(() => taylorError(preset, order), [preset, order]);
+
+  const terms = useMemo(() => {
+    const out: { k: number; value: number }[] = [];
+    for (let k = 0; k <= order; k++) {
+      if (preset.coeffs[k] !== 0) out.push({ k, value: taylorTerm(preset, k, xStar) });
+    }
+    return out;
+  }, [preset, order, xStar]);
+
+  const nextK = preset.coeffs.findIndex((c, k) => k > order && c !== 0);
+
+  return (
+    <VizShell title="Taylor polynomials" right={<span className="text-xs text-ink3 font-mono">n = {order}</span>}>
+      <div className="flex flex-wrap gap-1.5">
+        {TAYLOR_PRESETS.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => setPid(p.id)}
+            className={`chip cursor-pointer ${pid === p.id ? 'bg-bluel text-blue border-bluep' : 'hover:bg-paper2'}`}
+          >
+            {p.label}
+          </button>
+        ))}
+        <span className="chip bg-white">
+          <InlineMath latex={preset.latex} />
+        </span>
+      </div>
+
+      <div className="mt-3 grid gap-4 sm:grid-cols-[auto,1fr]">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-[400px] max-w-full bg-white border border-line">
+          <g stroke="#ECE8DE" strokeWidth={1}>
+            {Array.from({ length: 10 }, (_, i) => {
+              const x = xLo + ((xHi - xLo) * i) / 9;
+              return <line key={`gx${i}`} x1={X(x)} y1={PAD} x2={X(x)} y2={H - PAD} />;
+            })}
+            {Array.from({ length: 7 }, (_, i) => {
+              const y = yLo + ((yHi - yLo) * i) / 6;
+              return <line key={`gy${i}`} x1={PAD} y1={Y(y)} x2={W - PAD} y2={Y(y)} />;
+            })}
+          </g>
+          {yLo <= 0 && yHi >= 0 && <line x1={PAD} y1={Y(0)} x2={W - PAD} y2={Y(0)} stroke="#D5D1C4" />}
+          {xLo <= 0 && xHi >= 0 && <line x1={X(0)} y1={PAD} x2={X(0)} y2={H - PAD} stroke="#D5D1C4" />}
+
+          <path d={polyline(fPts)} fill="none" stroke={SVG_INK} strokeWidth={2} />
+          <path d={polyline(pPts)} fill="none" stroke={SVG_BLUE} strokeWidth={2} strokeDasharray="6 3" />
+
+          {/* the error we are measuring, drawn to scale */}
+          <line x1={X(xStar)} y1={Y(fAt)} x2={X(xStar)} y2={Y(pAt)} stroke={SVG_TERRA} strokeWidth={2} />
+          <circle cx={X(xStar)} cy={Y(fAt)} r={3} fill={SVG_INK} />
+          <circle cx={X(xStar)} cy={Y(pAt)} r={3} fill={SVG_BLUE} />
+
+          <text x={PAD} y={16} fontSize={11} fill={SVG_INK} fontFamily="ui-monospace, monospace">
+            f(x) solid · P{order}(x) dashed
+          </text>
+          <text x={W - PAD} y={H - 8} fontSize={11} fill="#66718A" textAnchor="end" fontFamily="ui-monospace, monospace">
+            x ∈ [{num(xLo, 2)}, {num(xHi, 2)}]
+          </text>
+        </svg>
+
+        <div className="min-w-[15rem]">
+          <label className="flex items-center gap-2 text-xs text-ink2">
+            degree n
+            <input type="range" min={0} max={12} step={1} value={order} onChange={(e) => setOrder(parseInt(e.target.value, 10))} className="w-full accent-blue" />
+            <span className="font-mono w-6 text-right text-ink">{order}</span>
+          </label>
+          <label className="mt-2 flex items-center gap-2 text-xs text-ink2">
+            evaluate at x
+            <input
+              type="range"
+              min={xLo}
+              max={xHi}
+              step={(xHi - xLo) / 200}
+              value={xStar}
+              onChange={(e) => setXTarget(parseFloat(e.target.value))}
+              className="w-full accent-blue"
+            />
+            <span className="font-mono w-12 text-right text-ink">{num(xStar, 2)}</span>
+          </label>
+
+          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-ink2">
+            <span>f({num(xStar, 2)})</span><span className="font-mono text-ink text-right">{num(fAt, 5)}</span>
+            <span>P{order}({num(xStar, 2)})</span><span className="font-mono text-blue text-right">{num(pAt, 5)}</span>
+            <span>error here</span><span className="font-mono text-terracotta text-right">{num(err, 5)}</span>
+            <span>worst |error|, |x| ≤ 1</span><span className="font-mono text-ink text-right">{num(worstNear, 5)}</span>
+            <span>worst |error|, window</span><span className="font-mono text-ink text-right">{num(worst, 5)}</span>
+          </div>
+
+          <div className="mt-3 border-t border-line pt-2 text-xs">
+            <div className="font-medium text-ink">Terms at x = {num(xStar, 2)}</div>
+            <div className="mt-1 max-h-32 overflow-y-auto slim-scroll font-mono text-[11px] text-ink2">
+              {terms.map((t) => (
+                <div key={t.k} className="flex justify-between gap-3">
+                  <span>k={t.k}</span>
+                  <span className={t.k === order ? 'text-blue' : ''}>{num(t.value, 5)}</span>
+                </div>
+              ))}
+            </div>
+            {nextK > 0 && (
+              <p className="mt-1 text-[11px] text-ink3">
+                next term would add {num(taylorTerm(preset, nextK, xStar), 5)}
+              </p>
+            )}
+          </div>
+
+          <p className="mt-3 text-xs leading-relaxed text-ink3">{preset.note}</p>
+        </div>
+      </div>
+    </VizShell>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 12. Bayes / natural frequencies
+// ---------------------------------------------------------------------------
+
+const BAYES_PRESETS: { id: string; label: string; prior: number; sensitivity: number; specificity: number; note: string }[] = [
+  {
+    id: 'rare', label: 'Rare disease (1 in 1000)', prior: 0.001, sensitivity: 0.99, specificity: 0.95,
+    note: 'The base rate dominates: most positives are false alarms because the healthy group is 999× larger.',
+  },
+  {
+    id: 'mammo', label: 'Screening test', prior: 0.008, sensitivity: 0.9, specificity: 0.91,
+    note: 'A 90% sensitive, 91% specific test on a 0.8% prevalence population still leaves most positives healthy.',
+  },
+  {
+    id: 'spam', label: 'Spam filter', prior: 0.5, sensitivity: 0.99, specificity: 0.995,
+    note: 'With a balanced prior, the same test quality gives a posterior close to certainty.',
+  },
+  {
+    id: 'dna', label: 'DNA match (1 in 10⁶)', prior: 1e-6, sensitivity: 1, specificity: 0.9999,
+    note: 'Even a 99.99% specific test is wrong about half the time when the prior is one in a million — the prosecutor\u2019s fallacy.',
+  },
+];
+
+function BayesViz({ props }: { props?: Record<string, unknown> }) {
+  const [presetId, setPresetId] = useState((props?.preset as string | undefined) ?? 'rare');
+  const [prior, setPrior] = useState((props?.prior as number | undefined) ?? 0.001);
+  const [sens, setSens] = useState((props?.sensitivity as number | undefined) ?? 0.99);
+  const [spec, setSpec] = useState((props?.specificity as number | undefined) ?? 0.95);
+
+  const result = useMemo(() => bayes({ prior, sensitivity: sens, specificity: spec }), [prior, sens, spec]);
+  const counts = bayesCounts(result);
+  const preset = BAYES_PRESETS.find((p) => p.id === presetId);
+
+  const W = 400;
+  const H = 210;
+  const posH = result.pPositive * H;
+  const negH = H - posH;
+  const tpW = result.tp + result.fp > 0 ? (result.tp / (result.tp + result.fp)) * W : W;
+
+  const block = (
+    x: number, y: number, w: number, h: number, fill: string, stroke: string, label: string, count: number, key: string,
+  ) => (
+    <g key={key}>
+      <rect x={x} y={y} width={Math.max(0, w)} height={Math.max(0, h)} fill={fill} stroke={stroke} strokeWidth={1} />
+      {w > 62 && h > 26 && (
+        <>
+          <text x={x + 6} y={y + 15} fontSize={11} fill={stroke} fontFamily="ui-monospace, monospace">{label}</text>
+          <text x={x + 6} y={y + 30} fontSize={13} fill={SVG_INK} fontWeight={600}>{count.toLocaleString()}</text>
+        </>
+      )}
+    </g>
+  );
+
+  return (
+    <VizShell
+      title="Bayes' rule in natural frequencies"
+      right={<span className="text-xs text-ink3 font-mono">P(H|+) = {(result.posterior * 100).toFixed(1)}%</span>}
+    >
+      <div className="flex flex-wrap gap-1.5">
+        {BAYES_PRESETS.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => { setPresetId(p.id); setPrior(p.prior); setSens(p.sensitivity); setSpec(p.specificity); }}
+            className={`chip cursor-pointer ${presetId === p.id ? 'bg-bluel text-blue border-bluep' : 'hover:bg-paper2'}`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-3 grid gap-4 sm:grid-cols-[auto,1fr]">
+        <div>
+          <svg viewBox={`0 0 ${W} ${H}`} className="w-[400px] max-w-full bg-white border border-line">
+            {block(0, 0, tpW, posH, '#E7F0E9', SVG_MOSS, 'TRUE POS', counts.tp, 'tp')}
+            {block(tpW, 0, W - tpW, posH, '#F7E9E5', SVG_TERRA, 'FALSE POS', counts.fp, 'fp')}
+            {block(0, posH, W, negH, '#F5EFDF', SVG_GOLD, 'FALSE NEG', counts.fn, 'fn')}
+            <text
+              x={W - 4}
+              y={H - 6}
+              fontSize={10}
+              fill="#66718A"
+              textAnchor="end"
+              fontFamily="ui-monospace, monospace"
+            >
+              {counts.tn.toLocaleString()} true negatives below
+            </text>
+          </svg>
+          <div className="mt-1 text-[11px] text-ink3 font-mono">
+            top band = everyone who tests positive ({Math.round(result.pPositive * result.population).toLocaleString()} of{' '}
+            {result.population.toLocaleString()})
+          </div>
+        </div>
+
+        <div className="min-w-[15rem]">
+          <label className="flex items-center gap-2 text-xs text-ink2">
+            prevalence P(H)
+            <input
+              type="range"
+              min={1}
+              max={6}
+              step={0.05}
+              value={-Math.log10(prior)}
+              onChange={(e) => { setPrior(10 ** -parseFloat(e.target.value)); setPresetId('custom'); }}
+              className="w-full accent-blue"
+            />
+            <span className="font-mono w-16 text-right text-ink">
+              {prior >= 0.01 ? `${(prior * 100).toFixed(1)}%` : `1 in ${Math.round(1 / prior).toLocaleString()}`}
+            </span>
+          </label>
+          <label className="mt-2 flex items-center gap-2 text-xs text-ink2">
+            sensitivity P(+|H)
+            <input type="range" min={0.5} max={1} step={0.005} value={sens} onChange={(e) => { setSens(parseFloat(e.target.value)); setPresetId('custom'); }} className="w-full accent-blue" />
+            <span className="font-mono w-16 text-right text-ink">{(sens * 100).toFixed(1)}%</span>
+          </label>
+          <label className="mt-2 flex items-center gap-2 text-xs text-ink2">
+            specificity P(−|¬H)
+            <input type="range" min={0.5} max={1} step={0.005} value={spec} onChange={(e) => { setSpec(parseFloat(e.target.value)); setPresetId('custom'); }} className="w-full accent-blue" />
+            <span className="font-mono w-16 text-right text-ink">{(spec * 100).toFixed(1)}%</span>
+          </label>
+
+          <div className="mt-4">
+            <div className="flex h-6 w-full overflow-hidden border border-line">
+              <div className="flex items-center justify-center bg-mossl text-[11px] font-medium text-moss" style={{ width: `${result.posterior * 100}%` }}>
+                {result.posterior > 0.12 ? `H | +  ${(result.posterior * 100).toFixed(1)}%` : ''}
+              </div>
+              <div className="flex flex-1 items-center justify-center bg-terracottal text-[11px] font-medium text-terracotta">
+                {result.falseDiscovery > 0.12 ? `¬H | +  ${(result.falseDiscovery * 100).toFixed(1)}%` : ''}
+              </div>
+            </div>
+            <div className="mt-2 text-xs text-ink2">
+              <InlineMath
+                latex={`P(H\\mid +)=\\frac{${num(sens, 3)}\\cdot${prior >= 0.01 ? num(prior, 3) : `${num(prior, 5)}`}}{${num(result.pPositive, 5)}}=${num(result.posterior, 3)}`}
+              />
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-ink2">
+              <span>P(+) overall</span><span className="font-mono text-ink text-right">{num(result.pPositive, 4)}</span>
+              <span>false discovery rate</span><span className="font-mono text-terracotta text-right">{(result.falseDiscovery * 100).toFixed(1)}%</span>
+              <span>false negatives</span><span className="font-mono text-ink text-right">{counts.fn.toLocaleString()} of {counts.tp + counts.fn}</span>
+            </div>
+          </div>
+
+          <p className="mt-3 text-xs leading-relaxed text-ink3">
+            {preset ? preset.note : 'Move the sliders: notice how the posterior is pulled by the prior, not just the test quality.'}
+          </p>
+        </div>
+      </div>
+    </VizShell>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 13. Central limit theorem
+// ---------------------------------------------------------------------------
+
+function CltViz({ props }: { props?: Record<string, unknown> }) {
+  const [populationId, setPopulationId] = useState((props?.population as string | undefined) ?? 'exponential');
+  const [n, setN] = useState((props?.n as number | undefined) ?? 5);
+  const [samples, setSamples] = useState((props?.samples as number | undefined) ?? 3000);
+  const [seed, setSeed] = useState((props?.seed as number | undefined) ?? 7);
+
+  const pop = getPopulation(populationId);
+  const run = useMemo(() => cltRun({ populationId, n, samples, seed }), [populationId, n, samples, seed]);
+  const overlay = useMemo(() => normalOverlay(run.hist, run.meanOfMeans, run.theoreticalSe), [run]);
+
+  const popShape = useMemo(() => {
+    const rng = mulberry32(seed + 991);
+    const draws: number[] = [];
+    for (let i = 0; i < 4000; i++) draws.push(pop.draw(rng));
+    const lo = pop.mean - 4 * pop.sd;
+    const hi = pop.mean + 4 * pop.sd;
+    const bins = 30;
+    const out = new Array(bins).fill(0) as number[];
+    for (const d of draws) {
+      if (d < lo || d > hi) continue;
+      const i = Math.min(bins - 1, Math.floor(((d - lo) / (hi - lo)) * bins));
+      out[i]++;
+    }
+    return { out, lo, hi, bins };
+  }, [pop, seed]);
+
+  const W = 400;
+  const H = 240;
+  const PAD = 26;
+  const maxCount = Math.max(1, ...run.hist.map((b) => b.count));
+  const maxOverlay = Math.max(1, ...overlay);
+  const bw = (W - 2 * PAD) / run.hist.length;
+  const Yc = (c: number): number => H - PAD - (c / maxCount) * (H - 2 * PAD);
+
+  const overlayPath = overlay
+    .map((c, i) => `${i ? 'L' : 'M'}${(PAD + (i + 0.5) * bw).toFixed(2)},${Yc((c / maxOverlay) * maxCount).toFixed(2)}`)
+    .join('');
+
+  const shapeBars = popShape.out.map((c, i) => {
+    const max = Math.max(1, ...popShape.out);
+    const x = PAD + i * ((W - 2 * PAD) / popShape.bins);
+    const h = (c / max) * 46;
+    return <rect key={i} x={x} y={H - 8 - h} width={(W - 2 * PAD) / popShape.bins - 1} height={h} fill="#8A93A5" />;
+  });
+
+  const ratio = run.sdOfMeans / run.theoreticalSe;
+
+  return (
+    <VizShell
+      title="Central limit theorem sampler"
+      right={<span className="text-xs text-ink3 font-mono">σ/√n = {num(run.theoreticalSe, 4)}</span>}
+    >
+      <div className="flex flex-wrap gap-1.5">
+        {POPULATIONS.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => setPopulationId(p.id)}
+            className={`chip cursor-pointer ${populationId === p.id ? 'bg-bluel text-blue border-bluep' : 'hover:bg-paper2'}`}
+          >
+            {p.label}
+          </button>
+        ))}
+        <button type="button" className="chip cursor-pointer hover:bg-paper2" onClick={() => setSeed((s) => s + 1)}>
+          new sample
+        </button>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-4">
+        <label className="flex items-center gap-2 text-xs text-ink2">
+          sample size n
+          <input type="range" min={1} max={60} step={1} value={n} onChange={(e) => setN(parseInt(e.target.value, 10))} className="w-40 accent-blue" />
+          <span className="font-mono w-6 text-right text-ink">{n}</span>
+        </label>
+        <label className="flex items-center gap-2 text-xs text-ink2">
+          samples
+          <input type="range" min={200} max={6000} step={100} value={samples} onChange={(e) => setSamples(parseInt(e.target.value, 10))} className="w-40 accent-blue" />
+          <span className="font-mono w-12 text-right text-ink">{samples}</span>
+        </label>
+        <span className="text-[11px] text-ink3">population shape: {pop.shape}</span>
+      </div>
+
+      <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-[400px] max-w-full bg-white border border-line">
+        {run.hist.map((b, i) => {
+          const y = Yc(b.count);
+          return <rect key={i} x={PAD + i * bw + 0.5} y={y} width={bw - 1} height={H - PAD - y} fill="#DCE8F2" stroke={SVG_BLUE} strokeWidth={0.6} />;
+        })}
+        <path d={overlayPath} fill="none" stroke={SVG_TERRA} strokeWidth={2} />
+        <line x1={PAD} y1={H - PAD} x2={W - PAD} y2={H - PAD} stroke="#D5D1C4" />
+        <text x={PAD} y={14} fontSize={11} fill={SVG_INK} fontFamily="ui-monospace, monospace">
+          {samples} sample means (bars) vs N(μ, σ/√n) (red)
+        </text>
+        <text x={PAD} y={H - 16} fontSize={10} fill="#66718A" fontFamily="ui-monospace, monospace">
+          population {pop.label}
+        </text>
+        {shapeBars}
+        <text x={W - PAD} y={H - 16} fontSize={10} fill="#66718A" textAnchor="end" fontFamily="ui-monospace, monospace">
+          shades = population draws
+        </text>
+      </svg>
+
+      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-ink2 sm:grid-cols-4">
+        <span>mean of means</span><span className="font-mono text-ink">{num(run.meanOfMeans, 4)}</span>
+        <span>population μ</span><span className="font-mono text-ink">{num(pop.mean, 4)}</span>
+        <span>sd of means</span><span className="font-mono text-ink">{num(run.sdOfMeans, 4)}</span>
+        <span>σ/√n</span><span className="font-mono text-ink">{num(run.theoreticalSe, 4)}</span>
+      </div>
+
+      <Message
+        tone={ratio > 0.8 && ratio < 1.25 ? 'good' : 'normal'}
+        text={
+          n <= 2
+            ? 'At n = 1 or 2 the histogram just mirrors the population — the theorem has not kicked in yet.'
+            : `Observed spread is ${num(ratio, 3)}× the predicted σ/√n. Raise n and the bars slide toward the red normal curve, whatever shape you start from.`
+        }
+      />
+    </VizShell>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 14. Gradient descent
+// ---------------------------------------------------------------------------
+
+function lossColor(t: number): string {
+  const stops: [number, number, number][] = [
+    [251, 250, 247],
+    [220, 232, 242],
+    [120, 165, 205],
+    [43, 92, 138],
+    [27, 42, 65],
+  ];
+  const clamped = Math.max(0, Math.min(1, t));
+  const scaled = clamped * (stops.length - 1);
+  const i = Math.min(stops.length - 2, Math.floor(scaled));
+  const f = scaled - i;
+  const c = stops[i].map((v, j) => Math.round(v + (stops[i + 1][j] - v) * f));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+function GradientDescentViz({ props }: { props?: Record<string, unknown> }) {
+  const [lid, setLid] = useState((props?.landscape as string | undefined) ?? 'ravine');
+  const [lr, setLr] = useState((props?.lr as number | undefined) ?? 0.03);
+  const [steps, setSteps] = useState((props?.steps as number | undefined) ?? 40);
+  const landscape = getLandscape(lid);
+
+  const run = useMemo(() => gdRun(landscape, { lr, steps }), [landscape, lr, steps]);
+  const player = usePlayer(run.path.length, 320);
+  const cur = run.path[Math.min(player.i, run.path.length - 1)];
+
+  const SIZE = 320;
+  const d = landscape.domain;
+  const P = (p: Vec2): [number, number] => [
+    ((p[0] + d) / (2 * d)) * SIZE,
+    SIZE - ((p[1] + d) / (2 * d)) * SIZE,
+  ];
+
+  const cells = useMemo(() => {
+    const N = 40;
+    const losses: number[] = [];
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < N; j++) {
+        const x = -d + (2 * d * (i + 0.5)) / N;
+        const y = -d + (2 * d * (j + 0.5)) / N;
+        losses.push(landscape.fn(x, y));
+      }
+    }
+    const finite = losses.filter((l) => Number.isFinite(l)).sort((a, b) => a - b);
+    const lo = finite.length ? Math.log1p(finite[0]) : 0;
+    const hi = finite.length ? Math.log1p(finite[Math.floor(finite.length * 0.97)]) : 1;
+    return Array.from({ length: N * N }, (_, idx) => {
+      const i = Math.floor(idx / N);
+      const j = idx % N;
+      const l = losses[idx];
+      const t = Number.isFinite(l) && hi > lo ? (Math.log1p(l) - lo) / (hi - lo) : 0;
+      const size = SIZE / N;
+      return (
+        <rect
+          key={idx}
+          x={i * size}
+          y={SIZE - (j + 1) * size}
+          width={size + 0.6}
+          height={size + 0.6}
+          fill={lossColor(1 - Math.max(0, Math.min(1, t)))}
+        />
+      );
+    });
+  }, [landscape, d]);
+
+  const pathPts = run.path.slice(0, player.i + 1).map((s) => P([s.x, s.y]));
+  const dPath = pathPts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(2)},${p[1].toFixed(2)}`).join('');
+
+  const [gx, gy] = landscape.grad(cur.x, cur.y);
+  const gn = Math.hypot(gx, gy) || 1;
+  const arrowLen = 34;
+  const cpx = P([cur.x, cur.y]);
+  const gradTip: [number, number] = [cpx[0] - (gx / gn) * arrowLen, cpx[1] + (gy / gn) * arrowLen];
+  const minPx = P(landscape.min);
+
+  return (
+    <VizShell
+      title="Gradient descent on a loss surface"
+      right={<span className="text-xs text-ink3 font-mono">lr = {num(lr, 4)}</span>}
+    >
+      <div className="flex flex-wrap gap-1.5">
+        {LANDSCAPES.map((l) => (
+          <button
+            key={l.id}
+            type="button"
+            onClick={() => { setLid(l.id); setLr(l.lrHint); }}
+            className={`chip cursor-pointer ${lid === l.id ? 'bg-bluel text-blue border-bluep' : 'hover:bg-paper2'}`}
+          >
+            {l.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-3 grid gap-4 sm:grid-cols-[auto,1fr]">
+        <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="w-[320px] max-w-full border border-line">
+          {cells}
+          <path d={dPath} fill="none" stroke="#F5EFDF" strokeWidth={3.4} strokeLinejoin="round" strokeLinecap="round" />
+          <path d={dPath} fill="none" stroke={SVG_TERRA} strokeWidth={1.6} strokeLinejoin="round" strokeLinecap="round" />
+          {run.path.slice(0, player.i + 1).map((s, i) => (
+            <circle key={i} cx={P([s.x, s.y])[0]} cy={P([s.x, s.y])[1]} r={i % 5 === 0 ? 2.4 : 1.4} fill="#F7E9E5" stroke={SVG_TERRA} strokeWidth={0.8} />
+          ))}
+          <circle cx={minPx[0]} cy={minPx[1]} r={4} fill="none" stroke={SVG_MOSS} strokeWidth={2} />
+          <circle cx={cpx[0]} cy={cpx[1]} r={5} fill={SVG_INK} />
+          <line x1={cpx[0]} y1={cpx[1]} x2={gradTip[0]} y2={gradTip[1]} stroke="#C9A227" strokeWidth={2.4} strokeLinecap="round" />
+          <text x={8} y={16} fontSize={11} fill="#FBFAF7" fontFamily="ui-monospace, monospace">
+            {landscape.latex} · step {player.i}/{Math.max(0, run.path.length - 1)}
+          </text>
+        </svg>
+
+        <div className="min-w-[15rem]">
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" className={player.playing ? 'btn-primary btn-sm' : 'btn-secondary btn-sm'} onClick={player.toggle}>
+              {player.playing ? '⏸ pause' : '▶ trace'}
+            </button>
+            <button type="button" className="btn-secondary btn-sm" onClick={player.prev} disabled={player.atStart}>←</button>
+            <button type="button" className="btn-secondary btn-sm" onClick={player.next} disabled={player.atEnd}>→</button>
+            <button type="button" className="btn-secondary btn-sm" onClick={player.reset}>reset</button>
+          </div>
+
+          <label className="mt-3 flex items-center gap-2 text-xs text-ink2">
+            learning rate
+            <input
+              type="range"
+              min={-4}
+              max={0}
+              step={0.02}
+              value={Math.log10(lr)}
+              onChange={(e) => setLr(10 ** parseFloat(e.target.value))}
+              className="w-full accent-blue"
+            />
+            <span className="font-mono w-16 text-right text-ink">{lr < 0.001 ? lr.toExponential(1) : num(lr, 4)}</span>
+          </label>
+          <label className="mt-2 flex items-center gap-2 text-xs text-ink2">
+            iterations
+            <input type="range" min={5} max={150} step={1} value={steps} onChange={(e) => setSteps(parseInt(e.target.value, 10))} className="w-full accent-blue" />
+            <span className="font-mono w-8 text-right text-ink">{steps}</span>
+          </label>
+
+          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-ink2">
+            <span>loss f(x,y)</span><span className="font-mono text-ink text-right">{num(cur.loss, 5)}</span>
+            <span>‖gradient‖</span><span className="font-mono text-ink text-right">{num(cur.gradNorm, 5)}</span>
+            <span>(x, y)</span><span className="font-mono text-ink text-right">({num(cur.x, 3)}, {num(cur.y, 3)})</span>
+            <span>distance to min</span><span className="font-mono text-ink text-right">{num(run.distanceToMin, 4)}</span>
+          </div>
+
+          <div className="mt-3 h-24 border border-line bg-paper2/40 p-1">
+            <svg viewBox="0 0 100 40" className="h-full w-full" preserveAspectRatio="none">
+              {(() => {
+                const losses = run.path.map((s) => (Number.isFinite(s.loss) ? Math.log1p(Math.max(0, s.loss)) : 0));
+                const hi = Math.max(1e-6, ...losses);
+                return run.path.map((s, i) => {
+                  const barW = 100 / Math.max(1, run.path.length);
+                  const h = (losses[i] / hi) * 38;
+                  return <rect key={i} x={i * barW} y={40 - h} width={Math.max(0.4, barW - 0.2)} height={h} fill={i <= player.i ? SVG_BLUE : '#D5D1C4'} />;
+                });
+              })()}
+            </svg>
+          </div>
+          <div className="mt-1 text-[11px] text-ink3 font-mono">log-scale loss per iteration</div>
+
+          <p className="mt-3 text-xs leading-relaxed text-ink3">{landscape.note}</p>
+          {run.diverged && (
+            <p className="mt-2 text-xs text-terracotta">
+              Diverged. The step size exceeds the stability limit 2/λmax for this curvature — the iterates fly off the surface.
+            </p>
+          )}
+          {!run.diverged && run.final.gradNorm < 1e-3 && (
+            <p className="mt-2 text-xs text-moss">Converged: the gradient has flattened out.</p>
+          )}
+        </div>
+      </div>
+    </VizShell>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 15. Huffman coding
+// ---------------------------------------------------------------------------
+
+const HUFF_PRESETS: { id: string; label: string; weights: { symbol: string; w: number }[]; note: string }[] = [
+  {
+    id: 'coin', label: 'Fair coin', weights: [{ symbol: 'H', w: 1 }, { symbol: 'T', w: 1 }],
+    note: 'Two equally likely symbols: one bit each, and the average length equals 1 bit = the entropy.',
+  },
+  {
+    id: 'skew', label: 'Skewed source', weights: [{ symbol: 'A', w: 7 }, { symbol: 'B', w: 1 }, { symbol: 'C', w: 1 }, { symbol: 'D', w: 1 }],
+    note: 'Rare symbols get long codes; the common symbol gets one bit. Average length beats the 2-bit fixed code.',
+  },
+  {
+    id: 'english', label: 'English letters', weights: [{ symbol: 'E', w: 127 }, { symbol: 'T', w: 91 }, { symbol: 'A', w: 82 }, { symbol: 'O', w: 75 }, { symbol: 'I', w: 70 }, { symbol: 'N', w: 67 }],
+    note: 'Real letter frequencies: the code lengths track 1/p, and the average lands near the entropy of English.',
+  },
+  {
+    id: 'dice', label: 'Loaded die', weights: [{ symbol: '1', w: 1 }, { symbol: '2', w: 1 }, { symbol: '3', w: 1 }, { symbol: '4', w: 1 }, { symbol: '5', w: 1 }, { symbol: '6', w: 3 }],
+    note: 'Six outcomes but not uniform — Huffman finds a code whose average length is below log₂6 ≈ 2.585.',
+  },
+];
+
+function huffmanLayout(root: HuffmanNode): {
+  pos: Map<HuffmanNode, { x: number; y: number }>;
+  links: { x1: number; y1: number; x2: number; y2: number; bit: string }[];
+  leaves: number;
+  maxDepth: number;
+} {
+  const pos = new Map<HuffmanNode, { x: number; y: number }>();
+  let col = 0;
+  let maxDepth = 0;
+  const assign = (n: HuffmanNode, depth: number): number => {
+    maxDepth = Math.max(maxDepth, depth);
+    if (n.symbol !== undefined) {
+      const x = col++;
+      pos.set(n, { x, y: depth });
+      return x;
+    }
+    const xs: number[] = [];
+    if (n.left) xs.push(assign(n.left, depth + 1));
+    if (n.right) xs.push(assign(n.right, depth + 1));
+    const x = xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : col++;
+    pos.set(n, { x, y: depth });
+    return x;
+  };
+  assign(root, 0);
+  const links: { x1: number; y1: number; x2: number; y2: number; bit: string }[] = [];
+  const collect = (n: HuffmanNode): void => {
+    const kids: [HuffmanNode | undefined, string][] = [[n.left, '0'], [n.right, '1']];
+    for (const [child, bit] of kids) {
+      if (!child) continue;
+      const a = pos.get(n);
+      const b = pos.get(child);
+      if (a && b) links.push({ x1: a.x, y1: a.y, x2: b.x, y2: b.y, bit });
+      collect(child);
+    }
+  };
+  collect(root);
+  return { pos, links, leaves: Math.max(1, col), maxDepth };
+}
+
+function HuffmanViz({ props }: { props?: Record<string, unknown> }) {
+  const [presetId, setPresetId] = useState((props?.preset as string | undefined) ?? 'skew');
+  const [weights, setWeights] = useState(() => {
+    const p = HUFF_PRESETS.find((x) => x.id === ((props?.preset as string | undefined) ?? 'skew')) ?? HUFF_PRESETS[1];
+    return p.weights.map((w) => ({ ...w }));
+  });
+  const [message, setMessage] = useState((props?.message as string | undefined) ?? 'AAAAAABCD');
+
+  const freqs = useMemo(() => {
+    const total = weights.reduce((s, w) => s + w.w, 0);
+    return weights.map((w) => ({ symbol: w.symbol, p: total > 0 ? w.w / total : 0 }));
+  }, [weights]);
+
+  const huff = useMemo(() => huffmanCodes(freqs), [freqs]);
+  const alphabet = useMemo(() => new Set(freqs.map((f) => f.symbol)), [freqs]);
+
+  const symbolsInMessage = useMemo(
+    () => message.split('').filter((c) => alphabet.has(c)).slice(0, 40),
+    [message, alphabet],
+  );
+  const roundTrip = useMemo(() => {
+    const bits = huffmanEncode(symbolsInMessage.join(''), huff.codes);
+    return { bits, decoded: huffmanDecode(bits, huff.tree).text };
+  }, [symbolsInMessage, huff]);
+
+  const layout = useMemo(() => (huff.tree ? huffmanLayout(huff.tree) : null), [huff]);
+
+  const fixedBits = Math.ceil(Math.log2(Math.max(2, freqs.filter((f) => f.p > 0).length)));
+  const COL = 52;
+  const ROW = 46;
+  const treeW = layout ? 70 + layout.leaves * COL : 0;
+  const treeH = layout ? 60 + layout.maxDepth * ROW : 0;
+  const TX = (x: number): number => 34 + x * COL;
+  const TY = (y: number): number => 26 + y * ROW;
+
+  return (
+    <VizShell
+      title="Huffman coding"
+      right={<span className="text-xs text-ink3 font-mono">avg {num(huff.avgLen, 3)} bits/symbol</span>}
+    >
+      <div className="flex flex-wrap gap-1.5">
+        {HUFF_PRESETS.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => { setPresetId(p.id); setWeights(p.weights.map((w) => ({ ...w }))); }}
+            className={`chip cursor-pointer ${presetId === p.id ? 'bg-bluel text-blue border-bluep' : 'hover:bg-paper2'}`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1fr),auto]">
+        <div>
+          <div className="overflow-x-auto slim-scroll">
+            <svg viewBox={`0 0 ${treeW} ${Math.max(90, treeH)}`} className="min-w-[320px] w-full max-w-[640px] bg-white border border-line">
+              {layout &&
+                layout.links.map((l, i) => (
+                  <g key={i}>
+                    <line x1={TX(l.x1)} y1={TY(l.y1)} x2={TX(l.x2)} y2={TY(l.y2)} stroke="#D5D1C4" strokeWidth={1.4} />
+                    <text
+                      x={(TX(l.x1) + TX(l.x2)) / 2 + (l.bit === '0' ? -9 : 9)}
+                      y={(TY(l.y1) + TY(l.y2)) / 2}
+                      fontSize={10}
+                      fill={SVG_BLUE}
+                      fontFamily="ui-monospace, monospace"
+                    >
+                      {l.bit}
+                    </text>
+                  </g>
+                ))}
+              {layout &&
+                [...layout.pos.entries()].map(([n, p], i) =>
+                  n.symbol !== undefined ? (
+                    <g key={i}>
+                      <rect x={TX(p.x) - 17} y={TY(p.y) - 12} width={34} height={24} fill="#EAF1F7" stroke={SVG_BLUE} />
+                      <text x={TX(p.x)} y={TY(p.y) + 4} fontSize={12} textAnchor="middle" fill={SVG_INK} fontFamily="ui-monospace, monospace" fontWeight={600}>
+                        {n.symbol}
+                      </text>
+                      <text x={TX(p.x)} y={TY(p.y) + 26} fontSize={10} textAnchor="middle" fill={SVG_TERRA} fontFamily="ui-monospace, monospace">
+                        {huff.codes[n.symbol]}
+                      </text>
+                    </g>
+                  ) : (
+                    <g key={i}>
+                      <circle cx={TX(p.x)} cy={TY(p.y)} r={4.5} fill="#F4F1EA" stroke="#8A93A5" />
+                      <text x={TX(p.x)} y={TY(p.y) - 10} fontSize={9} textAnchor="middle" fill="#66718A" fontFamily="ui-monospace, monospace">
+                        {num(n.p, 2)}
+                      </text>
+                    </g>
+                  ),
+                )}
+            </svg>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-xs text-ink2">
+              message
+              <input className="input !w-44 !py-1" value={message} onChange={(e) => setMessage(e.target.value.toUpperCase())} maxLength={40} />
+            </label>
+            <span className="text-[11px] text-ink3">
+              only symbols {[...alphabet].join(', ')} are encoded
+            </span>
+          </div>
+          <div className="mt-2 border border-line bg-paper2/40 p-2 font-mono text-[11px] leading-relaxed break-all text-ink2">
+            <div className="text-ink3">symbols → codes</div>
+            <div className="text-blue">{symbolsInMessage.map((s) => huff.codes[s]).join(' ')}</div>
+            <div className="mt-1 text-ink3">stream ({roundTrip.bits.length} bits)</div>
+            <div className="text-ink">{roundTrip.bits || '—'}</div>
+            <div className="mt-1 text-ink3">
+              decodes to{' '}
+              <span className={roundTrip.decoded === symbolsInMessage.join('') ? 'text-moss' : 'text-terracotta'}>
+                {roundTrip.decoded || '—'} {roundTrip.decoded === symbolsInMessage.join('') ? '✓ lossless' : '✗ mismatch'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="min-w-[15rem] lg:w-[17rem]">
+          <table className="w-full border-collapse text-xs">
+            <thead>
+              <tr>
+                <th className="border border-line bg-paper2 px-2 py-1 text-left">sym</th>
+                <th className="border border-line bg-paper2 px-2 py-1 text-left">weight</th>
+                <th className="border border-line bg-paper2 px-2 py-1 text-left">p</th>
+                <th className="border border-line bg-paper2 px-2 py-1 text-left">code</th>
+                <th className="border border-line bg-paper2 px-2 py-1 text-left">bits</th>
+              </tr>
+            </thead>
+            <tbody>
+              {weights.map((w, i) => (
+                <tr key={w.symbol}>
+                  <td className="border border-line px-2 py-1 font-mono font-semibold text-ink">{w.symbol}</td>
+                  <td className="border border-line px-2 py-0.5">
+                    <input
+                      type="range"
+                      min={0}
+                      max={10}
+                      step={1}
+                      value={w.w}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value, 10);
+                        setWeights((old) => old.map((o, j) => (j === i ? { ...o, w: v } : o)));
+                        setPresetId('custom');
+                      }}
+                      className="w-16 accent-blue"
+                    />
+                  </td>
+                  <td className="border border-line px-2 py-1 font-mono text-ink2">{num(freqs[i].p, 3)}</td>
+                  <td className="border border-line px-2 py-1 font-mono text-blue">{huff.codes[w.symbol] ?? '—'}</td>
+                  <td className="border border-line px-2 py-1 font-mono text-ink2">{huff.lengths[w.symbol] ?? 0}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-ink2">
+            <span>entropy H</span><span className="font-mono text-ink text-right">{num(huff.entropy, 4)}</span>
+            <span>average length</span><span className="font-mono text-blue text-right">{num(huff.avgLen, 4)}</span>
+            <span>redundancy</span><span className="font-mono text-ink text-right">{num(huff.redundancy, 4)}</span>
+            <span>longest code</span><span className="font-mono text-ink text-right">{huff.maxLen}</span>
+            <span>fixed-width code</span><span className="font-mono text-ink text-right">{fixedBits} bits</span>
+          </div>
+
+          <p className="mt-3 text-xs leading-relaxed text-ink3">
+            {presetId === 'custom'
+              ? 'Your own source. Huffman keeps the average length H ≤ L < H + 1, and the tree stays prefix-free.'
+              : HUFF_PRESETS.find((p) => p.id === presetId)?.note}
+          </p>
+          <p className="mt-2 text-xs text-ink3">
+            Prefix-free check: {isPrefixFree(huff.codes) ? 'no code is a prefix of another ✓' : 'collision ✗'} — that is what makes the
+            stream decodable without separators.
+          </p>
+        </div>
+      </div>
+    </VizShell>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Registry
 // ---------------------------------------------------------------------------
 
@@ -1392,6 +2466,12 @@ const REGISTRY: Record<string, VizCmp> = {
   euclid: EuclidViz,
   'modular-clock': ModularClockViz,
   rsa: RsaViz,
+  'matrix-transform': MatrixTransformViz,
+  taylor: TaylorViz,
+  bayes: BayesViz,
+  clt: CltViz,
+  'gradient-descent': GradientDescentViz,
+  huffman: HuffmanViz,
 };
 
 export function Viz({ id, props }: { id: string; props?: Record<string, unknown> }) {

@@ -108,6 +108,7 @@ export const informationTheory: Concept[] = [
         'Symbols A:0.5,B:0.25,C:0.125,D:0.125. Entropy =1.75 bits.',
         'Huffman: A=0 (1 bit), B=10 (2 bits), C=110, D=111 (3 bits). Expected length =0.5*1+0.25*2+0.125*3+0.125*3=1.75 = H, optimal.',
       ]},
+      { t: 'viz', id: 'huffman', props: { preset: 'skew', message: 'AAAAAABCD' } },
       { t: 'cs', items: [
         { area: 'ZIP', how: 'Lempel-Ziv approximates entropy rate of source.' },
         { area: 'ML', how: 'VAE loss includes entropy term for latent code.' },

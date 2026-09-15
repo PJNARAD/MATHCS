@@ -1,16 +1,23 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowRight, Check, Circle } from 'lucide-react';
+import { ArrowRight, Bookmark, Check, Circle, Play } from 'lucide-react';
 import { domains } from '../data/domains';
 import { fields } from '../data/fields';
 import { getConcept } from '../lib/concepts';
 import { BlockView, ConceptLink, LevelBadge, PrereqLine } from '../components/ui';
 import { useStore } from '../lib/store';
+import { snippetsForConcept } from '../data/snippets';
 
 export function ConceptPage() {
   const { id = '' } = useParams();
   const concept = getConcept(id);
-  const { isComplete, toggleComplete } = useStore();
+  const { isComplete, toggleComplete, isBookmarked, toggleBookmark, visitConcept } = useStore();
+  const conceptId = concept?.id;
+
+  // Record the visit for the command palette's "recent" section.
+  useEffect(() => {
+    if (conceptId) visitConcept(conceptId);
+  }, [conceptId, visitConcept]);
 
   if (!concept) {
     return (
@@ -26,6 +33,8 @@ export function ConceptPage() {
 
   const domain = domains.find((d) => d.id === concept.domain);
   const done = isComplete(concept.id);
+  const saved = isBookmarked(concept.id);
+  const snippets = snippetsForConcept(concept.id);
   const csFieldObjs = fields.filter((f) => concept.csFields.includes(f.id));
 
   return (
@@ -49,18 +58,29 @@ export function ConceptPage() {
               <h1 className="text-3xl font-semibold tracking-tightest text-ink font-serif">{concept.title}</h1>
               <p className="mt-2 leading-7 text-ink2">{concept.summary}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => toggleComplete(concept.id)}
-              className={
-                done
-                  ? 'btn bg-moss text-white hover:bg-mossl border border-moss'
-                  : 'btn-secondary'
-              }
-            >
-              {done ? <Check size={15} /> : <Circle size={15} />}
-              {done ? 'Completed' : 'Mark complete'}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => toggleBookmark(concept.id)}
+                className={`btn-secondary ${saved ? 'border-gold text-gold' : ''}`}
+                aria-pressed={saved}
+              >
+                <Bookmark size={15} fill={saved ? 'currentColor' : 'none'} />
+                {saved ? 'Saved' : 'Save'}
+              </button>
+              <button
+                type="button"
+                onClick={() => toggleComplete(concept.id)}
+                className={
+                  done
+                    ? 'btn bg-moss text-white hover:bg-mossl border border-moss'
+                    : 'btn-secondary'
+                }
+              >
+                {done ? <Check size={15} /> : <Circle size={15} />}
+                {done ? 'Completed' : 'Mark complete'}
+              </button>
+            </div>
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -93,6 +113,32 @@ export function ConceptPage() {
         {concept.content.map((b, i) => (
           <BlockView key={i} block={b} />
         ))}
+
+        {snippets.length > 0 && (
+          <section className="mt-8 border border-line bg-white">
+            <div className="flex items-center gap-2 border-b border-line bg-paper2/60 px-4 py-2">
+              <Play size={13} className="text-blue" />
+              <span className="text-sm font-medium text-ink">Run the code</span>
+              <span className="text-[11px] text-ink3">verified in the playground</span>
+            </div>
+            <ul className="divide-y divide-line">
+              {snippets.map((s) => (
+                <li key={s.id}>
+                  <Link
+                    to={`/playground?snippet=${s.id}`}
+                    className="flex items-start justify-between gap-4 px-4 py-3 transition-colors hover:bg-paper2"
+                  >
+                    <span>
+                      <span className="block text-sm font-medium text-ink">{s.title}</span>
+                      <span className="mt-0.5 block text-xs text-ink3">{s.blurb}</span>
+                    </span>
+                    <span className="mt-0.5 shrink-0 font-mono text-[11px] text-blue">{s.id}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <PracticeSection conceptId={concept.id} />
 

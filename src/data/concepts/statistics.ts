@@ -84,6 +84,7 @@ export const statistics: Concept[] = [
     related: ['confidence-intervals', 'hypothesis-testing'],
     content: [
       { t: 'def', title: 'Sampling distribution', text: 'Fix population. Draw many samples size n, compute statistic T (e.g., mean). Distribution of T across samples is its sampling distribution. For mean: $E[\\bar X]=μ$, $Var(\\bar X)=σ²/n$, and by CLT $\\bar X≈N(μ,σ²/n)$ for large n.' },
+      { t: 'viz', id: 'clt', props: { population: 'dice', n: 10, samples: 3000, seed: 11 } },
       { t: 'ex', title: 'Standard error', steps: [
         'SE = SD of sampling distribution. For mean, SE = s/√n (estimated).',
         'SE shrinks as 1/√n: quadrupling sample halves error.',

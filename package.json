@@ -2,14 +2,18 @@
   "name": "mathcs",
   "private": true,
   "version": "1.0.0",
-  "description": "MathCS — Mathematics for Computer Science. An interactive mathematics laboratory for CS students.",
+  "description": "MathCS \u2014 Mathematics for Computer Science. An interactive mathematics laboratory for CS students.",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "tsx tests/run.ts"
+    "test": "tsx tests/run.ts",
+    "snippets:verify": "tsx scripts/snippets.ts verify",
+    "snippets:write": "tsx scripts/snippets.ts write",
+    "test:smoke": "tsx tests/smoke.tsx",
+    "verify": "npm run typecheck && npm test && npm run snippets:verify && npm run test:smoke"
   },
   "dependencies": {
     "katex": "^0.16.11",

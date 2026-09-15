@@ -220,6 +220,7 @@ export const linearAlgebra: Concept[] = [
         'Example: point (1,0), translate (1,0) → (2,0), rotate 90° → (0,2).',
         'Rotate first: (1,0)→(0,1), translate (1,0)→(1,1). Different!',
       ]},
+      { t: 'viz', id: 'matrix-transform', props: { preset: 'shear' } },
     ],
     practice: [
       { id: 'pt2d-p1', q: 'Matrix for rotate 90°?', type: 'short', diff: 'easy', answer: '[[0,-1],[1,0]]', explain: 'cos90=0, sin90=1.' },
