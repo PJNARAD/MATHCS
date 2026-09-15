@@ -10,6 +10,7 @@ import { proofs } from '../data/concepts/proofs';
 import { combinatorics } from '../data/concepts/combinatorics';
 import { graphTheory1 } from '../data/concepts/graph-theory-1';
 import { graphTheory2 } from '../data/concepts/graph-theory-2';
+import { graphAlgorithms } from '../data/concepts/graph-algorithms';
 import { numberTheory1 } from '../data/concepts/number-theory-1';
 import { numberTheory2 } from '../data/concepts/number-theory-2';
 import { probability } from '../data/concepts/probability';
@@ -30,6 +31,7 @@ export const allConcepts: Concept[] = [
   ...combinatorics,
   ...graphTheory1,
   ...graphTheory2,
+  ...graphAlgorithms,
   ...numberTheory1,
   ...numberTheory2,
   ...probability,
