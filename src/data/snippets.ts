@@ -1491,6 +1491,48 @@ console.log(x + " meet " + y + " = gcd = " + gcd(x, y));
 console.log(x + " join " + y + " = lcm = " + lcm(x, y));`,
     output: 'D36 = 1 2 3 4 6 9 12 18 36\nrank 4: 36\nrank 3: 12  18\nrank 2: 4  6  9\nrank 1: 2  3\nrank 0: 1\ncover edges: 12\n12 meet 18 = gcd = 6\n12 join 18 = lcm = 36',
   },
+  {
+    id: 'riemann-convergence',
+    conceptId: 'definite-integral',
+    title: 'Riemann sums closing in',
+    blurb: 'Left, right and midpoint sums for the integral of x^2 on [0, 1]. Watch the midpoint error shrink 100x for every 10x more strips.',
+    code: `const f = x => x * x;
+function sum(n, where) {
+  const dx = 1 / n;
+  let s = 0;
+  for (let i = 0; i < n; i++) s += f((i + where) * dx) * dx;
+  return s;
+}
+for (const n of [4, 10, 100, 1000]) {
+  const L = sum(n, 0), R = sum(n, 1), M = sum(n, 0.5);
+  console.log("n=" + n, "left", L.toFixed(6), "right", R.toFixed(6), "mid", M.toFixed(6), "mid err", Math.abs(M - 1 / 3).toExponential(1));
+}`,
+    output: 'n=4 left 0.218750 right 0.468750 mid 0.328125 mid err 5.2e-3\nn=10 left 0.285000 right 0.385000 mid 0.332500 mid err 8.3e-4\nn=100 left 0.328350 right 0.338350 mid 0.333325 mid err 8.3e-6\nn=1000 left 0.332834 right 0.333834 mid 0.333333 mid err 8.3e-8',
+  },
+  {
+    id: 'backprop-gradient-check',
+    conceptId: 'differentiation-rules-calc',
+    title: 'Backprop vs finite differences',
+    blurb: 'The chain rule, one stage at a time, for a single sigmoid neuron, checked against a centred finite difference.',
+    code: `const sigma = z => 1 / (1 + Math.exp(-z));
+const x = 1.5, y = 1;
+const loss = (w, b) => (sigma(w * x + b) - y) ** 2;
+let w = 2, b = -1;
+// forward
+const z = w * x + b, a = sigma(z), L = (a - y) ** 2;
+// backward: multiply local derivatives
+const dA = 2 * (a - y);
+const dZ = dA * a * (1 - a);
+const dW = dZ * x, dB = dZ;
+const h = 1e-6;
+const numW = (loss(w + h, b) - loss(w - h, b)) / (2 * h);
+const numB = (loss(w, b + h) - loss(w, b - h)) / (2 * h);
+console.log("loss", L.toFixed(4));
+console.log("dL/dw backprop", dW.toFixed(6), "numeric", numW.toFixed(6));
+console.log("dL/db backprop", dB.toFixed(6), "numeric", numB.toFixed(6));
+console.log("agree:", Math.abs(dW - numW) < 1e-8 && Math.abs(dB - numB) < 1e-8);`,
+    output: 'loss 0.0142\ndL/dw backprop -0.037547 numeric -0.037547\ndL/db backprop -0.025031 numeric -0.025031\nagree: true',
+  },
 ];
 
 export const snippetById = (id: string): Snippet | undefined => snippets.find((s) => s.id === id);
