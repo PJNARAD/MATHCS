@@ -294,11 +294,11 @@ export const ntModular: Concept[] = [
       ] },
     ],
     practice: [
-      { id: 'rc-p1', q: 'List the residue classes mod 4 and compute [3] + [3] and [3]·[3] in ℤ/4ℤ.', type: 'short', diff: 'easy',
+      { id: 'rcl-p1', q: 'List the residue classes mod 4 and compute [3] + [3] and [3]·[3] in ℤ/4ℤ.', type: 'short', diff: 'easy',
         answer: 'Classes [0],[1],[2],[3]. [3]+[3] = [6] = [2]. [3]·[3] = [9] = [1].',
         explain: 'Work with remainders: 6 mod 4 = 2, 9 mod 4 = 1.',
       },
-      { id: 'rc-p2', q: 'Which classes mod 12 are units (have a multiplicative inverse)?', type: 'short', diff: 'medium',
+      { id: 'rcl-p2', q: 'Which classes mod 12 are units (have a multiplicative inverse)?', type: 'short', diff: 'medium',
         answer: '[1],[5],[7],[11] — exactly the classes coprime to 12. φ(12) = 4. Check: 5·5 = 25 ≡ 1; 7·7 = 49 ≡ 1; 11·11 = 121 ≡ 1 (mod 12).',
         explain: 'Units = classes [a] with gcd(a,12) = 1; each inverse is found by extended Euclid.',
       },

@@ -73,8 +73,8 @@ export const calculus: Concept[] = [
       ]},
     ],
     practice: [
-      { id: 'der-p1', q: 'f(x)=x³. f\'(2)?', type: 'numeric', diff: 'easy', answer: '12', explain: '3x² at 2 =12.' },
-      { id: 'der-p2', q: 'If f differentiable at a, must it be continuous there?', type: 'truefalse', diff: 'easy', options: ['True','False'], correct: 0, answer: 'True', explain: 'Differentiability ⇒ continuity, but not converse (|x| continuous at 0 but not differentiable).' },
+      { id: 'deriv-p1', q: 'f(x)=x³. f\'(2)?', type: 'numeric', diff: 'easy', answer: '12', explain: '3x² at 2 =12.' },
+      { id: 'deriv-p2', q: 'If f differentiable at a, must it be continuous there?', type: 'truefalse', diff: 'easy', options: ['True','False'], correct: 0, answer: 'True', explain: 'Differentiability ⇒ continuity, but not converse (|x| continuous at 0 but not differentiable).' },
     ],
   },
   {

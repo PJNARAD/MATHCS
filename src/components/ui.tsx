@@ -191,7 +191,8 @@ export function CopyLatexButton({ latex }: { latex: string }) {
   );
 }
 
-function ProofDetails({ title, steps }: { title?: string; steps: string[] }) {
+/** The proof disclosure a lesson uses; exported so /theorems renders proofs identically. */
+export function ProofDetails({ title, steps }: { title?: string; steps: string[] }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="mt-3 border-t border-dashed border-line2 pt-2">
@@ -405,15 +406,22 @@ function VizBlockLazy({ id, props }: { id: string; props?: Record<string, unknow
 // Practice — interactive questions backed by the progress store
 // ---------------------------------------------------------------------------
 
-function MCQ({ q }: { q: PracticeQ }) {
+/**
+ * `fresh` ignores any stored result, which is what the trainer needs: a review
+ * question must be answerable again even though it was got right last week.
+ * `onResult` lets a caller advance as soon as the learner has answered.
+ */
+function MCQ({ q, fresh, onResult }: { q: PracticeQ; fresh?: boolean; onResult?: (correct: boolean) => void }) {
   const { recordAnswer, practiceResult } = useStore();
-  const done = practiceResult(q.id);
+  const done = fresh ? undefined : practiceResult(q.id);
   const [picked, setPicked] = useState<number | null>(done?.correct ? q.correct ?? null : null);
 
   const choose = (i: number) => {
     if (picked !== null) return;
+    const correct = i === (q.correct ?? -1);
     setPicked(i);
-    recordAnswer(q.id, i === (q.correct ?? -1));
+    recordAnswer(q.id, correct);
+    onResult?.(correct);
   };
 
   return (
@@ -455,9 +463,17 @@ function MCQ({ q }: { q: PracticeQ }) {
   );
 }
 
-function OpenEnded({ q }: { q: PracticeQ }) {
+function OpenEnded({ q, onResult }: { q: PracticeQ; onResult?: (correct: boolean) => void }) {
   const { recordAnswer } = useStore();
   const [show, setShow] = useState(false);
+  const [graded, setGraded] = useState<boolean | null>(null);
+
+  const grade = (correct: boolean) => {
+    if (graded !== null) return;
+    setGraded(correct);
+    recordAnswer(q.id, correct);
+    onResult?.(correct);
+  };
 
   return (
     <div>
@@ -477,15 +493,56 @@ function OpenEnded({ q }: { q: PracticeQ }) {
             <RichText text={q.explain} />
           </div>
           <div className="mt-3 flex gap-2">
-            <button type="button" className="btn-secondary btn-sm" onClick={() => recordAnswer(q.id, true)}>
+            <button
+              type="button"
+              className={graded === true ? 'btn-sm btn bg-moss text-onaccent border-moss' : 'btn-secondary btn-sm'}
+              onClick={() => grade(true)}
+              disabled={graded !== null}
+            >
               I got this one
             </button>
-            <button type="button" className="btn-ghost btn-sm" onClick={() => recordAnswer(q.id, false)}>
+            <button
+              type="button"
+              className={graded === false ? 'btn-sm btn bg-terracotta text-onaccent border-terracotta' : 'btn-ghost btn-sm'}
+              onClick={() => grade(false)}
+              disabled={graded !== null}
+            >
               Still shaky
             </button>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * One question, as a self-contained panel. Shared by the lesson page (which
+ * lists every question of a concept) and the /practice trainer (which shows one
+ * at a time), so an answer is recorded identically in both places.
+ */
+export function PracticeQuestion({
+  q, fresh, onResult, meta,
+}: {
+  q: PracticeQ;
+  fresh?: boolean;
+  onResult?: (correct: boolean) => void;
+  /** Extra chips — the trainer uses this for the lesson a question came from. */
+  meta?: React.ReactNode;
+}) {
+  return (
+    <div className="panel p-4">
+      <div className="flex flex-wrap items-start gap-2">
+        <DiffBadge diff={q.diff} />
+        <span className="text-sm text-ink4 font-mono mt-0.5">{q.id}</span>
+        {meta && <span className="ml-auto text-xs text-ink3">{meta}</span>}
+      </div>
+      <p className="mt-2 text-[0.94rem] leading-7 text-ink">
+        <RichText text={q.q} />
+      </p>
+      {q.type === 'mcq' || q.type === 'truefalse'
+        ? <MCQ q={q} fresh={fresh} onResult={onResult} />
+        : <OpenEnded q={q} onResult={onResult} />}
     </div>
   );
 }
@@ -496,18 +553,7 @@ export function Practice({ concept }: { concept: Concept }) {
     <section className="mt-10">
       <h2 className="text-lg font-semibold text-ink font-serif mb-3">Practice</h2>
       <div className="space-y-4">
-        {concept.practice.map((q) => (
-          <div key={q.id} className="panel p-4">
-            <div className="flex items-start gap-2">
-              <DiffBadge diff={q.diff} />
-              <span className="text-sm text-ink4 font-mono mt-0.5">{q.id}</span>
-            </div>
-            <p className="mt-2 text-[0.94rem] leading-7 text-ink">
-              <RichText text={q.q} />
-            </p>
-            {q.type === 'mcq' || q.type === 'truefalse' ? <MCQ q={q} /> : <OpenEnded q={q} />}
-          </div>
-        ))}
+        {concept.practice.map((q) => <PracticeQuestion key={q.id} q={q} />)}
       </div>
     </section>
   );

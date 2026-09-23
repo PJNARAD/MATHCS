@@ -136,6 +136,11 @@ export function buildSearchDocs(): SearchDoc[] {
     { title: 'Learning Paths', href: '/paths', subtitle: 'Staged curricula', keywords: 'roadmap study plan' },
     { title: 'Books', href: '/books', subtitle: 'Recommended reading', keywords: 'textbooks library' },
     { title: 'Playground', href: '/playground', subtitle: 'Run the code behind the concepts', keywords: 'snippets javascript runner code' },
+    { title: 'Practice Trainer', href: '/practice', subtitle: 'Interleaved questions on a spaced-repetition schedule', keywords: 'quiz drill review questions trainer srs revision' },
+    { title: 'Progress', href: '/progress', subtitle: 'Streak, accuracy, completion and what to read next', keywords: 'dashboard stats streak bookmarks completed progress' },
+    { title: 'Glossary', href: '/glossary', subtitle: 'Every definition in the curriculum, A–Z', keywords: 'dictionary definitions terms vocabulary glossary' },
+    { title: 'Theorem Index', href: '/theorems', subtitle: 'Statements and proofs, grouped by domain', keywords: 'theorems proofs lemmas rigour true why' },
+    { title: 'Applications', href: '/applications', subtitle: 'Where computer science uses each idea', keywords: 'applications industry uses cs fields applied' },
   ];
   for (const p of pages) docs.push({ id: `page-${p.href}`, kind: 'page', ...p });
 

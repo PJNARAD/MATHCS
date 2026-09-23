@@ -20,24 +20,104 @@ Refresh this document's numbers with `npm run audit` after any content change.
 | Concepts | **243** (34 hub topics, 209 lessons) |
 | Route payload | **no route downloads lesson bodies** (see §8) |
 | Domains | **15 / 15 published** |
-| Practice questions | **401** — 196 easy, 154 medium, **51 hard** |
-| Theorems with proofs | 85 `thm` blocks, 177 definition blocks |
-| CS-application call-outs | 191 `cs` blocks |
+| Practice questions | **401** — 196 easy, 154 medium, **51 hard** — all ids globally unique |
+| Theorems / definitions | **92** `thm` blocks (**90** with written proofs), **178** `def` blocks |
+| CS-application call-outs | **197** `cs` blocks · **460** individual call-outs |
 | Interactive visualizations | 16 components, **27** used across content |
 | Runnable, output-verified snippets | **63** |
 | Learning paths / CS fields / books | 14 / 30 / 24 |
+| Reader surfaces | 12 routes — lessons plus trainer, dashboard and three generated libraries |
+| Guardrails | **391** assertions, 5 generated files checked for staleness, CI on every PR |
 | Dangling cross-references | **0** |
 
-CI enforces the good properties: every snippet's declared output is produced by
-a real execution, every registered visualization must be reachable from some
-concept, and the smoke test server-renders a route sample including the newest
-lessons. `npm run audit` covers what the tests do not: coverage and depth.
+CI (`.github/workflows/verify.yml`) enforces the good properties: every snippet's
+declared output is produced by a real execution, every registered visualization
+must be reachable from some concept, the smoke test server-renders a route sample
+including the newest lessons, all five generated files must match the content,
+and `npm run gates` fails a build in which any route downloads a lesson body or
+a chunk outgrows its budget. `npm run audit` covers what the tests do not:
+coverage and depth.
 
 ### What was just added (this batch)
 
-The **Calculus core** batch — the first depth pass outside discrete, aimed at the
-five worst stubs in the audit: calculus 784 → **3 509 words**, 7 → **34 practice**
-questions (6 new hard `proof` questions), and the depth list 139 → **133**.
+The **learner surfaces + generated library + CI** batch. No new lesson prose: it
+ships five routes built from content that already existed, the continuous
+integration the roadmap had been promising, and the guardrails that keep them
+honest. Test count 281 → **391**.
+
+- **`/practice`** — the interleaved trainer §3 asked for. Questions are drawn
+  from all 401 across every lesson, filtered by mode (smart review / new /
+  missed / everything), domain, difficulty and scope (whole curriculum, lessons
+  finished, lessons saved), and ordered by `src/lib/srs.ts`: a miss returns
+  immediately, a success returns after 1, then 3, then 7 days. One question at a
+  time, answered in place, with a session summary that lists what comes back.
+- **`/progress`** — the dashboard over the store: completion per domain,
+  practice accuracy per domain, a 28-day activity strip and streak, path
+  progress, saved and recently opened lessons, "needs work" (lowest accuracy
+  with at least three attempts), "closest to finished" and a **read next** list
+  computed from prerequisites (`src/lib/progress.ts`, pure and tested).
+- **`/glossary`** — all **178** `def` blocks as an A–Z dictionary with a search
+  box that reads definition text, a domain filter and a jump-to-letter rail.
+- **`/theorems`** — all **92** `thm` blocks, **90** with their proof steps
+  behind the same disclosure a lesson uses, grouped by domain, with a
+  "only theorems with a written proof" filter.
+- **`/applications`** — all **460** `cs` call-outs, filterable by any of the 30
+  CS fields, grouped by field (or by domain once a field is chosen). The site's
+  differentiator is no longer buried one scroll deep inside a lesson.
+
+Every library entry deep-links to the exact block it came from
+(`/concept/partial-orders#section-definition-partial-order`); the anchors are
+produced by the same `buildOutline()` that renders them, and a test fails if an
+entry ever points at a block with no anchor.
+
+**How the new pages stay cheap.** They need slices of content that no other route
+needs, so each slice is generated into its own file and read through a suspending
+loader (`src/lib/reference-loader.ts`), exactly like the concept index:
+
+| Generated slice | Entries | gzip | Downloaded by |
+|---|---|---|---|
+| `glossary-index.ts` | 178 | 21.07 kB | `/glossary` only |
+| `theorem-index.ts` | 92 | 24.11 kB | `/theorems` only |
+| `applications-index.ts` | 460 | 31.11 kB | `/applications` only |
+| `practice-index.ts` | 401 | **4.20 kB** | `/practice`, `/progress` |
+
+The practice manifest carries question *metadata* only — id, lesson, domain,
+difficulty, type — so a session is scheduled without downloading anything, and
+each question's text arrives with the single domain chunk it belongs to. Loading
+every domain chunk instead would have cost ≈675 kB raw for one glossary visit.
+`npm run refindex:write` regenerates all four; `npm test` and
+`npm run refindex:verify` fail if any is stale, and `npm run gates` fails if a
+slice stops being lazily imported or outgrows its budget.
+
+**Store v3.** `mathcs-progress-v3` adds what a streak and a schedule need:
+`dayStamps` (local activity days, capped at 730) and richer practice records
+(`right`, `wrong`, `lastCorrect`, `lastAt`). v1 and v2 payloads migrate on read —
+an old record that only knew "ever correct, 2 attempts" is reconstructed as one
+success and one miss rather than dropped — and `loadProgress` now walks all three
+keys newest-first.
+
+**A bug the manifest exposed.** Practice results are keyed by question id, and
+22 ids were shared between two or three lessons (`bs-p1` belonged to
+binary-search, boolean-simplification *and* bayesian-statistics; `der-p1` to
+derangements and derivative), so answering one silently marked another. Renaming
+23 ids across 14 lessons made all **401 unique**, and "practice question ids are
+globally unique" is now a test.
+
+**CI.** `.github/workflows/verify.yml` runs typecheck, the 391 assertions,
+snippet-output verification, both index freshness checks and the SSR smoke on
+every push to `main` and every pull request, then builds and runs
+`scripts/ci-gates.mjs`: zero dangling references, every domain published, no
+orphan concepts, no route downloads a lesson body, the initial shell contains no
+lesson body and no generated slice, every slice is reached only through a dynamic
+`import()`, and ten chunk budgets (ratchets set just above today's size, meant to
+be lowered as `ui.tsx` and `discrete-2` are split). `npm run ci` is the same
+sequence locally.
+
+### Previous batch: the Calculus core
+
+The first depth pass outside discrete, aimed at the five worst stubs in the
+audit: calculus 784 → **3 509 words**, 7 → **34 practice** questions (6 new hard
+`proof` questions), and the depth list 139 → **133**.
 
 - **`differentiation-rules`**: intuition, the chain rule in Leibniz form, full
   proofs of the product rule and the chain rule (using the helper-function
@@ -111,25 +191,34 @@ Relations lessons are the current upper end of that range.
 
 ## 3. Priority 1 — practice coverage and difficulty
 
-- **42 lessons have no practice questions at all** (`npm run audit` lists them).
-  Definitions-without-exercises is the most common complaint about math sites;
-  `venn-diagrams`, `matrix-basics`, `gaussian-elimination`, `rank-nullity`,
-  `svd`, `turing-machines` are the most conspicuous.
-- **Only 45 of 374 questions are hard.** The advanced half of the curriculum
-  (SVD, decidability, Lagrange multipliers, channel capacity) is under-tested.
-  Target ~15% hard, i.e. ~11 more hard questions. The four depth batches are the
-  pattern to copy: their hard questions are almost all
-  `proof` questions, and each one asks for the argument rather than the answer.
-- **Thin metadata**: 58 of 374 questions have a `mistake` field (the "common
-  wrong answer" hint) and 54 use `related`. Both are rendered by the practice
+- **37 lessons have no practice questions at all** (`npm run audit` lists them;
+  51 concepts including hub topics). Definitions-without-exercises is the most
+  common complaint about math sites; `venn-diagrams`, `matrix-basics`,
+  `gaussian-elimination`, `rank-nullity`, `svd`, `turing-machines` are the most
+  conspicuous. These lessons are also invisible to `/practice`, which can only
+  ask what exists.
+- **Only 51 of 401 questions are hard (12.7%).** The advanced half of the
+  curriculum (SVD, decidability, Lagrange multipliers, channel capacity) is
+  under-tested. Target ~15% hard, i.e. ~10 more hard questions. The four depth
+  batches are the pattern to copy: their hard questions are almost all `proof`
+  questions, and each one asks for the argument rather than the answer. By type
+  the pool is 147 `short`, 116 `numeric`, 79 `proof`, 36 `mcq`, 23 `truefalse` —
+  the trainer asks all five, but only the last two can be graded without the
+  learner marking themselves.
+- **Thin metadata**: 65 of 401 questions have a `mistake` field (the "common
+  wrong answer" hint) and 57 use `related`. Both are rendered by the practice
   component and turn a quiz into teaching — the Relations and Boolean questions
   show the intended use (`vacuous truth`, `maximal vs maximum`, "the properties
   correlate, so you cannot count choices independently").
-- **No interleaved practice.** Every question lives inside its lesson. A
-  `/practice` page that samples across completed lessons — the store already
-  records attempts and correctness — would convert the site from a book into
-  a trainer. Spaced repetition (re-surface missed questions after 1, 3, 7
-  attempts) is a small amount of logic on top of existing state.
+- ~~**No interleaved practice.**~~ **Done — `/practice` ships.** Questions are
+  drawn across every lesson and ordered by `src/lib/srs.ts`: a miss returns
+  immediately, a success returns after 1, then 3, then 7 days. Modes are smart
+  review / new only / missed only / everything, filtered by domain, difficulty
+  and scope (whole curriculum, lessons finished, lessons saved), and
+  `/practice?domain=calculus&mode=missed` is a shareable link the dashboard uses
+  for its "needs work" rows. What is still missing is the content side of this
+  bullet: 37 lessons have no questions to contribute, and only 51 of 401 are
+  hard.
 
 ---
 
@@ -161,17 +250,38 @@ Reuse the existing `VizShell` and visual tokens so dark mode keeps working;
 ## 5. Priority 3 — reachability of what already exists
 
 Content that is invisible to readers is content that does not exist. Three
-high-leverage pages can be generated **from data already in the repo**:
+high-leverage pages **generated from data already in the repo** — all three now
+ship, plus the dashboard:
 
-1. **`/glossary`** — every `def` block (177 of them) as a browsable, searchable
-   dictionary with a link back to its lesson. Also feeds the command palette
-   (which currently indexes only pages).
-2. **`/theorem-index`** — the 85 `thm` blocks with statements and proofs, grouped
-   by domain, cross-linked to prerequisites. This is the site's "why the
-   mathematics is true" library.
-3. **`/applications`** — the 191 `cs` blocks as a "where is this used?" index,
-   filterable by CS field; this is the site's strongest differentiator and today
-   it is buried one scroll deep inside lessons.
+1. ~~**`/glossary`**~~ **Done** — all 178 `def` blocks as a searchable A–Z
+   dictionary (the search reads definition text, not just the term), with a
+   domain filter, a jump-to-letter rail and a deep link to the source block. All
+   five new routes are in the command palette.
+2. ~~**`/theorems`**~~ **Done** — all 92 `thm` blocks, 90 of them with their
+   proof steps behind the lesson's own disclosure, grouped by domain. This is the
+   site's "why the mathematics is true" library.
+3. ~~**`/applications`**~~ **Done** — all 460 `cs` call-outs, filterable by any
+   of the 30 CS fields.
+4. ~~**`/progress`**~~ **Done** — completion and accuracy per domain, streak and
+   activity strip, path progress, saved and recent lessons, weakest domains and a
+   prerequisite-aware "read next" list.
+
+What reachability still needs:
+
+- **Tags are populated on 0 of 243 concepts.** `ConceptPage` renders
+  `concept.tags` chips and `search.ts` indexes them as keywords, so the feature
+  is dead code until the field is filled. It is generated-index-friendly (the
+  serializer already carries `tags`) and would give the library pages a second
+  filtering axis.
+- **Search cannot see inside a lesson.** The palette matches titles, summaries
+  and keywords only: "Hasse" appears in 3 lesson bodies and returns none of them,
+  "vacuous" in 4. A generated body index — the same trick the glossary uses, one
+  lazy chunk — would fix it.
+- **The header has no small-screen layout.** Brand + search + six nav links +
+  two controls with no breakpoint handling; the nav now scrolls instead of
+  overflowing, which is a patch, not a design.
+- **No `og:`/`twitter:` tags, no `sitemap.xml`, no `robots.txt`** for 243
+  indexable lesson URLs plus five new library routes.
 
 Smaller reachability fixes:
 
@@ -233,16 +343,25 @@ size of `probability` (16+) before any brand-new domain is considered.
 
 ## 7. Priority 5 — integrity chores
 
-- **Merge near-duplicates** (`npm run audit` flags them by slug similarity):
-  `variance-covariance` vs `variance-covariance-prob`,
-  `differentiation-rules` vs `differentiation-rules-calc`,
-  `minimum-spanning-trees` vs `spanning-trees` (legitimately distinct — keep),
-  plus `law-of-large-numbers` vs `law-of-large-numbers-stat` and
-  `factors-multiples` vs `factors-and-multiple`.
+- **Merge near-duplicates.** `npm run audit` now flags exactly two pairs by slug
+  similarity: `variance-covariance` vs `variance-covariance-prob` and
+  `minimum-spanning-trees` vs `spanning-trees` (the latter legitimately distinct
+  — keep). `differentiation-rules-calc` was rewritten as its own lesson in the
+  Calculus batch, and `law-of-large-numbers`/`-stat` and
+  `factors-multiples`/`factors-and-multiple` no longer trip the threshold, but
+  they are still worth a read for overlap.
 - **Review the copied-suffix lessons** (`-calc`, `-prob`, `-stat`) — they look
-  like accidental forks left by earlier authoring passes.
-- **Reference metadata**: `mistake` and `related` fields on questions, and
-  `tags` on concepts, are still thin (58 and 54 of 374).
+  like accidental forks left by earlier authoring passes. Two of them
+  (`variance-covariance-prob`, `law-of-large-numbers-stat`) are 1–2 block stubs,
+  so merging them into their siblings would also shrink the depth list.
+- **Reference metadata**: `mistake` and `related` are on 65 and 57 of 401
+  questions, and **`tags` are on 0 of 243 concepts** — the concept page renders
+  tag chips and the palette indexes them as search keywords, so that field is
+  currently dead weight in both.
+- **Practice ids are unique again** (this batch): 22 ids were shared between
+  lessons, which made one answer write two records. A test now fails if any two
+  questions anywhere in the curriculum share an id — keep new ids prefixed with
+  something specific to the lesson (`bsimp-p1`, not `bs-p1`).
 - **Difficulty balance across levels**: 48 foundational / 135 core / 60 advanced
   is healthy, but several `advanced` lessons have thin content (a level label
   that content does not back up).
@@ -368,26 +487,40 @@ domain loads a body whose title and block count match its index entry.
   change, no content edits, and the guard tests already cover it (index ↔ body
   agreement, one loader per domain, no dead loaders).
 
-### Other backlog (unchanged)
+### Other backlog
 
-1. **Glossary + theorem index pages** (~1 session, generated from 173 existing
-   `def`/`thm` blocks) — new surfaces with no new authoring.
-2. **Practice for the 42 lesson gaps** (~1 session) — every lesson then teaches
-   and tests.
+1. **Practice for the 37 lesson gaps** (~1 session) — every lesson then teaches
+   and tests, and `/practice` stops having empty corners of the curriculum.
+2. **Depth pass on number-theory and linear-algebra** (8 + 20 thin lessons) —
+   the two domains that sit on the most learning paths; the four discrete passes
+   are the template.
 3. **The three graph-theory visualizations** (union–find, flow-residual,
    matching) — the newest lessons are the most interactive-needy and the graph
    engine already exists. A relation/Hasse-diagram lab would be the natural
    fifth, since the Relations lessons are the only topic of the four passes
    with no interactivity at all.
-4. **Depth pass on number-theory and linear-algebra** (8 + 20 thin lessons) —
-   the two domains that sit on the most learning paths; the four discrete passes
-   are the template.
-5. **Split `ui.tsx`** — the shell pieces from the lesson renderer (see above).
-   It is the largest remaining shared download at 138 kB gzip per route.
-6. **Split `discrete-2` by topic** — see the note at the end of the split
-   section; 175.70 kB raw is the one lazy chunk that is out of line.
+4. **Split `ui.tsx`** — the shell pieces from the lesson renderer (see above).
+   It is the largest remaining shared download at 138 kB gzip per route, and
+   `npm run gates` now holds a 150 kB ratchet on it: lower the budget when the
+   split lands.
+5. **Split `discrete-2` by topic** — see the note at the end of the split
+   section; 176.24 kB raw / 59.38 kB gzip is the one lazy chunk that is out of
+   line, and the gate holds it at 65 kB.
+6. **Populate `tags`** on concepts and add a **full-text body index** for the
+   palette (both described in §5).
+7. **SEO and sharing**: `sitemap.xml`, `robots.txt`, per-route `og:`/`twitter:`
+   meta for 243 lessons and five library routes.
+8. **Learner data portability**: export/import progress as JSON, and per-lesson
+   notes. The store is versioned and migrated, so both are additive.
 
-Guardrails to keep: every batch ends with `npm run verify` (247 tests, 60
-verified snippets, index freshness, SSR smoke) and `npm run audit` must report **0 dangling
-references** — regressions there mean a lesson was promised and not written.
+Guardrails to keep: every batch ends with `npm run ci` (391 tests, 63 verified
+snippets, five generated files checked for staleness, SSR smoke over every route
+including the five new ones, then a build and the delivery gates) and
+`npm run audit` must report **0 dangling references** — regressions there mean a
+lesson was promised and not written. After any content change, regenerate both
+index families:
+
+```bash
+npm run index:write && npm run refindex:write && npm run ci
+```
 

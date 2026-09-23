@@ -14,6 +14,11 @@ const PathsPage = lazy(() => import('./pages/PathsPage').then((module) => ({ def
 const PathDetailPage = lazy(() => import('./pages/PathsPage').then((module) => ({ default: module.PathDetailPage })));
 const BooksPage = lazy(() => import('./pages/BooksPage').then((module) => ({ default: module.BooksPage })));
 const PlaygroundPage = lazy(() => import('./pages/PlaygroundPage').then((module) => ({ default: module.PlaygroundPage })));
+const PracticePage = lazy(() => import('./pages/PracticePage').then((module) => ({ default: module.PracticePage })));
+const ProgressPage = lazy(() => import('./pages/ProgressPage').then((module) => ({ default: module.ProgressPage })));
+const GlossaryPage = lazy(() => import('./pages/GlossaryPage').then((module) => ({ default: module.GlossaryPage })));
+const TheoremsPage = lazy(() => import('./pages/TheoremsPage').then((module) => ({ default: module.TheoremsPage })));
+const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage').then((module) => ({ default: module.ApplicationsPage })));
 const CommandPalette = lazy(() => import('./components/CommandPalette').then((module) => ({ default: module.CommandPalette })));
 
 function ScrollToTop() {
@@ -24,20 +29,52 @@ function ScrollToTop() {
   return null;
 }
 
+// The two learner surfaces are the newest additions to the shell, so they only
+// join the header once there is room for them; every page is reachable from the
+// footer, the home page and the command palette at any width.
 const NAV = [
   { to: '/fields', label: 'CS Fields' },
   { to: '/paths', label: 'Paths' },
   { to: '/books', label: 'Books' },
   { to: '/playground', label: 'Playground' },
+  { to: '/practice', label: 'Practice', wide: true },
+  { to: '/progress', label: 'Progress', wide: true },
 ];
 
-function NavItem({ to, label }: { to: string; label: string }) {
+const FOOTER_LINKS: { heading: string; links: { to: string; label: string }[] }[] = [
+  {
+    heading: 'Learn',
+    links: [
+      { to: '/fields', label: 'CS fields' },
+      { to: '/paths', label: 'Learning paths' },
+      { to: '/books', label: 'Books' },
+      { to: '/playground', label: 'Playground' },
+    ],
+  },
+  {
+    heading: 'Library',
+    links: [
+      { to: '/glossary', label: 'Glossary' },
+      { to: '/theorems', label: 'Theorem index' },
+      { to: '/applications', label: 'Applications' },
+    ],
+  },
+  {
+    heading: 'You',
+    links: [
+      { to: '/practice', label: 'Practice trainer' },
+      { to: '/progress', label: 'Progress dashboard' },
+    ],
+  },
+];
+
+function NavItem({ to, label, wide }: { to: string; label: string; wide?: boolean }) {
   return (
     <NavLink
       to={to}
       end
       className={({ isActive }) =>
-        `px-3 py-1.5 text-sm transition-colors ${
+        `shrink-0 px-3 py-1.5 text-sm transition-colors ${wide ? 'hidden lg:block' : ''} ${
           isActive ? 'bg-ink text-paper' : 'text-ink2 hover:bg-paper2 hover:text-ink'
         }`
       }
@@ -64,7 +101,7 @@ function PageLoading() {
       <div className="mx-auto h-1 w-24 overflow-hidden bg-paper2">
         <div className="h-full w-1/2 animate-pulse bg-blue" />
       </div>
-      <p className="mt-3 text-xs text-ink3">Loading lesson…</p>
+      <p className="mt-3 text-xs text-ink3">Loading…</p>
     </div>
   );
 }
@@ -92,7 +129,7 @@ function AppShell() {
       <header className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur no-print">
         <div className="mx-auto max-w-wide px-4 h-14 flex items-center gap-2">
           <Brand />
-          <nav className="ml-auto flex items-center gap-1">
+          <nav className="slim-scroll ml-auto flex items-center gap-1 overflow-x-auto">
             <button
               type="button"
               onClick={() => setPaletteOpen(true)}
@@ -124,6 +161,11 @@ function AppShell() {
             <Route path="/path/:id" element={<PathDetailPage />} />
             <Route path="/books" element={<BooksPage />} />
             <Route path="/playground" element={<PlaygroundPage />} />
+            <Route path="/practice" element={<PracticePage />} />
+            <Route path="/progress" element={<ProgressPage />} />
+            <Route path="/glossary" element={<GlossaryPage />} />
+            <Route path="/theorems" element={<TheoremsPage />} />
+            <Route path="/applications" element={<ApplicationsPage />} />
             <Route
               path="*"
               element={
@@ -138,15 +180,37 @@ function AppShell() {
         </Suspense>
       </main>
 
-      <footer className="border-t border-line bg-surface">
-        <div className="mx-auto max-w-wide px-4 py-6 flex flex-wrap items-center justify-between gap-3 text-xs text-ink3">
-          <span>
-            MathCS — Mathematics for Computer Science. {publishedDomainCount} domains published: lessons, proofs,
-            runnable code and interactive labs.
-          </span>
-          <span className="font-mono">
-            {new Date().getFullYear()} · interactive laboratory
-          </span>
+      <footer className="no-print border-t border-line bg-surface">
+        <div className="mx-auto max-w-wide px-4 py-8">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <Brand />
+              <p className="mt-2 max-w-xs text-xs leading-relaxed text-ink3">
+                Mathematics for Computer Science: {publishedDomainCount} domains of lessons, proofs, runnable code
+                and interactive labs.
+              </p>
+            </div>
+            {FOOTER_LINKS.map((group) => (
+              <nav key={group.heading} aria-label={group.heading}>
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-ink3">{group.heading}</div>
+                <ul className="mt-2 space-y-1">
+                  {group.links.map((link) => (
+                    <li key={link.to}>
+                      <Link to={link.to} className="text-xs text-ink2 transition-colors hover:text-blue">
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ))}
+          </div>
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4 text-xs text-ink3">
+            <span>Progress, bookmarks and practice history stay in this browser.</span>
+            <span className="font-mono">
+              {new Date().getFullYear()} · interactive laboratory
+            </span>
+          </div>
         </div>
       </footer>
       <Suspense fallback={null}>

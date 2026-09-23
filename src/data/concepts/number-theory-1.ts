@@ -106,10 +106,10 @@ export const ntFoundations: Concept[] = [
       ] },
     ],
     practice: [
-      { id: 'ba-p1', q: 'Convert 45₁₀ to binary.', type: 'short', diff: 'easy', answer: '(101101)₂',
+      { id: 'binarith-p1', q: 'Convert 45₁₀ to binary.', type: 'short', diff: 'easy', answer: '(101101)₂',
         explain: '32 + 8 + 4 + 1 = 45 → 101101₂.',
       },
-      { id: 'ba-p2', q: 'What is 2⁶⁴ mod 3?', type: 'numeric', diff: 'medium', answer: '1',
+      { id: 'binarith-p2', q: 'What is 2⁶⁴ mod 3?', type: 'numeric', diff: 'medium', answer: '1',
         explain: '2 ≡ −1 (mod 3), so 2⁶⁴ ≡ (−1)⁶⁴ = 1.',
       },
     ],
@@ -370,7 +370,7 @@ export const ntDivisibility: Concept[] = [
       ] },
     ],
     practice: [
-      { id: 'dt-p1', q: 'Is 48,392 divisible by 4? By 8? By 11?', type: 'short', diff: 'easy',
+      { id: 'divtest-p1', q: 'Is 48,392 divisible by 4? By 8? By 11?', type: 'short', diff: 'easy',
         answer: '4: last two digits 92 = 4·23 → yes. 8: last three 392 = 8·49 → yes. 11: 4−8+3−9+2 = −8 ≡ 3 → no.',
         explain: 'Apply each rule directly; no full division needed.',
       },

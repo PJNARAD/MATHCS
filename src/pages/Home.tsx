@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import {
+  ArrowRight, BookOpenText, Compass, ScrollText, Target, TrendingUp,
+} from 'lucide-react';
 import { domains } from '../data/domains';
 import { fields } from '../data/fields';
 import { paths } from '../data/paths';
@@ -9,8 +11,47 @@ import { conceptInfo, domainsWithContent, totalConcepts, totalPracticeCount } fr
 import { Icon } from '../components/ui';
 import { useStore } from '../lib/store';
 
+const LIBRARY_ICONS = { BookOpenText, Compass, ScrollText, Target, TrendingUp };
+
 export function HomePage() {
   const practiceCount = totalPracticeCount;
+  const LIBRARY_CARDS: { to: string; title: string; lede: string; meta: string; Icon: React.ComponentType<{ size?: number | string }> }[] = [
+    {
+      to: '/practice',
+      title: 'Practice trainer',
+      lede: 'Questions from every lesson, interleaved — what you missed comes back first, then 1, 3 and 7 days after each success.',
+      meta: `${practiceCount} questions · spaced repetition`,
+      Icon: LIBRARY_ICONS.Target,
+    },
+    {
+      to: '/glossary',
+      title: 'Glossary',
+      lede: 'Every definition in the curriculum as one searchable A–Z dictionary, each entry linking back to its lesson.',
+      meta: 'Generated from the lessons',
+      Icon: LIBRARY_ICONS.BookOpenText,
+    },
+    {
+      to: '/theorems',
+      title: 'Theorem index',
+      lede: 'Statements and proofs grouped by domain — the answer to “why is that true?” without hunting through lessons.',
+      meta: 'Proofs included where written',
+      Icon: LIBRARY_ICONS.ScrollText,
+    },
+    {
+      to: '/applications',
+      title: 'Applications',
+      lede: 'Every “where computer science uses this” call-out, filterable by the field you actually work in.',
+      meta: `${fields.length} CS fields`,
+      Icon: LIBRARY_ICONS.Compass,
+    },
+    {
+      to: '/progress',
+      title: 'Progress dashboard',
+      lede: 'Completion per domain, practice accuracy, your streak and what to read next — all stored in this browser.',
+      meta: 'No account needed',
+      Icon: LIBRARY_ICONS.TrendingUp,
+    },
+  ];
   const { state } = useStore();
   const recentConcept = state.recent
     .map((entry) => conceptInfo(entry.id))
@@ -172,6 +213,33 @@ export function HomePage() {
               <div className="mt-2 text-[11px] font-medium text-blue">
                 {p.stages.length} stages · {p.stages.reduce((s, st) => s + st.concepts.length, 0)} concepts
               </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Library + trainer */}
+      <section className="mx-auto max-w-wide px-4 py-12">
+        <div className="flex items-baseline justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tightest text-ink font-serif">The library and the trainer</h2>
+            <p className="mt-1 text-sm text-ink3">
+              Generated straight from the lessons: every definition, every theorem and every CS application in one
+              place — plus a practice queue that brings questions back on a spaced schedule.
+            </p>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {LIBRARY_CARDS.map((card) => (
+            <Link key={card.to} to={card.to} className="group panel p-4 transition-shadow hover:shadow-pop hover:border-bluep">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-paper2 border border-line text-ink2 group-hover:bg-bluel group-hover:text-blue group-hover:border-bluep transition-colors">
+                  <card.Icon size={18} />
+                </span>
+                <span className="font-semibold text-ink group-hover:text-blue transition-colors">{card.title}</span>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-ink3">{card.lede}</p>
+              <div className="mt-2 text-[11px] font-medium text-blue">{card.meta}</div>
             </Link>
           ))}
         </div>
