@@ -20,11 +20,11 @@ Refresh this document's numbers with `npm run audit` after any content change.
 | Concepts | **243** (34 hub topics, 209 lessons) |
 | Route payload | **no route downloads lesson bodies** (see §8) |
 | Domains | **15 / 15 published** |
-| Practice questions | **374** — 185 easy, 144 medium, **45 hard** |
+| Practice questions | **401** — 196 easy, 154 medium, **51 hard** |
 | Theorems with proofs | 85 `thm` blocks, 177 definition blocks |
 | CS-application call-outs | 191 `cs` blocks |
 | Interactive visualizations | 16 components, **27** used across content |
-| Runnable, output-verified snippets | **61** |
+| Runnable, output-verified snippets | **63** |
 | Learning paths / CS fields / books | 14 / 30 / 24 |
 | Dangling cross-references | **0** |
 
@@ -35,43 +35,37 @@ lessons. `npm run audit` covers what the tests do not: coverage and depth.
 
 ### What was just added (this batch)
 
-The **Asymptotics** batch — the last of the four depth passes, and the one that
-closes the queue: 2 130 → **6 894 words**, 21 → 42 blocks, 8 → 18 practice.
+The **Calculus core** batch — the first depth pass outside discrete, aimed at the
+five worst stubs in the audit: calculus 784 → **3 509 words**, 7 → **34 practice**
+questions (6 new hard `proof` questions), and the depth list 139 → **133**.
 
-- **`asymptotics`** (hub): what the unit-cost RAM model counts and what it hides,
-  the best/average/worst table for five standard algorithms, an exact nested-loop
-  count that becomes $\Theta(n^2)$, and the theorem that makes “constants do not
-  matter” precise ($f \in o(g)$ loses to any constant factor eventually).
-- **`asymptotic-notation`**: the definitions read as a game, a “disprove the
-  bound” worked example ($n^2 \notin O(n)$), the five notations side by side
-  ($O, \Omega, \Theta, o, \omega$), a truth table of true/false statements, and
-  a proof that $\Theta$ is an equivalence relation.
-- **`asymptotic-properties`**: the sum and product rules stated for sets of
-  functions, both proved with explicit constants, the pipeline example, and an
-  amortized-analysis example (dynamic-array doubling) that is the sum rule
-  applied to a sequence of operations.
-- **`growth-rates`**: the hierarchy with the practical “wall” table ($n^2$ at
-  $10^6$ is 17 minutes, $2^n$ is unusable past $n = 40$), the limit test proved
-  from the $\epsilon$-definition, polynomial/exponential separation proved by
-  ratios, and an awkward-function comparison done by taking logarithms.
-- **`binary-search`**: the element-search lesson now also carries a full
-  “binary search on the answer” worked example (minimum ship capacity in $d$
-  days), a numeric estimate of its cost, and the decision-tree lower bound
-  $\lceil \log_2(n+1) \rceil$ proved — so the lesson contains the algorithm, its
-  optimality, and its generalization.
+- **`differentiation-rules`**: intuition, the chain rule in Leibniz form, full
+  proofs of the product rule and the chain rule (using the helper-function
+  argument that avoids dividing by zero), a chain-inside-product example, and
+  the sigmoid derivative $\sigma' = \sigma(1-\sigma)$ with the vanishing-gradient
+  consequence.
+- **`differentiation-rules-calc`** was a one-line alias flagged as a near-duplicate.
+  It is now a distinct lesson, **The Chain Rule on Computation Graphs**: one
+  neuron differentiated by hand and checked by finite differences, forward vs
+  reverse mode, and the cheap-gradient theorem proved. The near-duplicate pair is gone.
+- **`antiderivatives`**: “antiderivatives differ by a constant” proved from the MVT
+  (including why the interval hypothesis matters for $\ln|x|$), and projectile
+  motion from acceleration to position.
+- **`definite-integral`**: $\int_0^1 x^2$ from the definition, a left/right/midpoint
+  table, and the theorem that monotone functions are integrable.
+- **`ftoc`**: both parts proved, Part I combined with the chain rule, the
+  $\int_{-1}^1 x^{-2}$ trap, and prefix sums / integral images as the discrete FTC.
+- **`integration-techniques`**: parts and substitution proved from product/chain +
+  FTC, three worked examples, and a “which technique?” table.
 
-Supporting changes: 10 new practice questions, 3 new verified snippets
-(`growth-race`, `amortized-append`, `binary-search-halving`) — the third verifies
-the halving bound numerically for every $n \le 4096$ — and a duplicate snippet id
-found while adding them (`binary-search-steps` existed already), now renamed so
-the uniqueness test stays meaningful. The concepts-per-domain split still has its
-own section in §8.
+Supporting changes: 2 new verified snippets (`riemann-convergence`, which produces
+the Riemann table in the lesson, and `backprop-gradient-check`).
 
 ---
 
-## 2. Priority 0 — depth: 139 lessons are still stubs
+## 2. Priority 0 — depth: 133 lessons are still stubs
 
-**This is the single largest content gap.** 139 of 209 lessons have four or
+**This is the single largest content gap.** 133 of 209 lessons have four or
 fewer content blocks — typically a definition and one CS note. The lessons are
 correct but they are outlines, not teaching. The audit lists them by block count:
 
