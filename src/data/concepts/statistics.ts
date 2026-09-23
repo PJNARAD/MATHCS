@@ -205,7 +205,7 @@ export const statistics: Concept[] = [
       ]},
     ],
     practice: [
-      { id: 'bs-p1', q: 'Why does prior help with small data?', type: 'short', diff: 'medium', answer: 'Adds pseudo-observations, stabilizes estimate, avoids overfitting.', explain: 'Regularization.' },
+      { id: 'bstat-p1', q: 'Why does prior help with small data?', type: 'short', diff: 'medium', answer: 'Adds pseudo-observations, stabilizes estimate, avoids overfitting.', explain: 'Regularization.' },
     ],
   },
   {

@@ -20,6 +20,9 @@ const routes = [
   // Newest depth batches (Relations, Boolean algebra, Recursion) through the lazy loader.
   '/concept/partial-orders', '/concept/boolean-simplification', '/concept/recursion', '/concept/growth-rates',
   '/domain/number-theory', '/field/ml', '/path/ml-foundations',
+  // Generated library pages and the learner surfaces: each suspends on its own
+  // slice, so onAllReady has to resolve it or the page renders as a shell.
+  '/glossary', '/theorems', '/applications', '/practice', '/progress',
 ];
 
 /** React escapes quotes/apostrophes as entities; unescape before searching text. */
@@ -33,7 +36,7 @@ const decode = (html: string): string => html
 /**
  * renderToString stops at a Suspense fallback. Pipeable SSR's onAllReady is
  * the important part of this smoke test: it waits for every lazy route and
- * visualization chunk, so a broken page cannot hide behind "Loading lesson".
+ * visualization chunk, so a broken page cannot hide behind the route fallback.
  */
 function renderApp(route: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -66,7 +69,7 @@ async function main(): Promise<void> {
     const tag = route === '/' ? 'home' : route;
     try {
       const html = await renderApp(route);
-      if (html.length < 800 || html.includes('Loading lesson')) {
+      if (html.length < 800 || html.includes('Loading…')) {
         failures++;
         console.log(`  ✗ ${tag} rendered an incomplete shell (${html.length} chars)`);
       } else console.log(`  ✓ ${tag} (${html.length} chars)`);
@@ -106,6 +109,31 @@ async function main(): Promise<void> {
     const has = html.includes(marker);
     if (!has) failures++;
     console.log(`  ${has ? '✓' : '✗'} ${conceptId} renders its visualization (${getConcept(conceptId)?.title})`);
+  }
+
+  // The new surfaces must render their real content, not a Suspense fallback:
+  // each one suspends on a generated slice or on a lazy lesson body.
+  const surfaceMarkers: [string, string][] = [
+    ['/glossary', 'defined terms'],
+    ['/theorems', 'with proofs'],
+    ['/applications', 'call-outs'],
+    ['/practice', 'questions in the curriculum'],
+    ['/progress', 'Your progress'],
+    ['/practice?domain=calculus&mode=missed', 'Practice trainer'],
+  ];
+  for (const [route, marker] of surfaceMarkers) {
+    const html = decode(await renderApp(route));
+    const has = html.includes(marker);
+    if (!has) failures++;
+    console.log(`  ${has ? '✓' : '✗'} ${route} renders its content (${marker})`);
+  }
+
+  // A glossary entry must be reachable from the page and deep-link to its block.
+  {
+    const html = decode(await renderApp('/glossary'));
+    const hasAnchor = /href="\/concept\/[a-z0-9-]+#section-definition-/.test(html);
+    if (!hasAnchor) failures++;
+    console.log(`  ${hasAnchor ? '✓' : '✗'} glossary entries deep-link to the block they came from`);
   }
 
   // The shell still exposes both the palette and the no-flash/theme controls.

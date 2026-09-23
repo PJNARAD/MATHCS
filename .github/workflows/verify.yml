@@ -1,0 +1,67 @@
+name: verify
+
+# CONTENT-ROADMAP.md has always claimed "CI enforces the good properties". This
+# is that enforcement: every check `npm run verify` makes locally, plus the
+# built-output gates that only exist after a bundle (no route downloads a lesson
+# body, generated slices stay lazy, chunk budgets do not regress) and the content
+# invariant the roadmap treats as a hard rule (zero dangling references).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: typecheck · tests · content · delivery
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22 # matches netlify.toml
+          cache: npm
+
+      - run: npm ci
+
+      - name: Types
+        run: npm run typecheck
+
+      - name: Unit, content and guard tests
+        run: npm test
+
+      - name: Playground snippet outputs are produced by execution
+        run: npm run snippets:verify
+
+      - name: Concept index is not stale
+        run: npm run index:verify
+
+      - name: Reference indexes are not stale
+        run: npm run refindex:verify
+
+      - name: SSR smoke (routes, playground deep-links, visualizations)
+        run: npm run test:smoke
+
+      - name: Production build
+        run: npm run build
+
+      - name: Content and delivery gates
+        run: npm run gates
+
+      # Reports, not gates: useful in the log when something above fails.
+      - name: Route weight report
+        if: always()
+        run: node scripts/route-size.mjs
+
+      - name: Content audit
+        if: always()
+        run: npm run audit

@@ -94,8 +94,8 @@ export const optimization: Concept[] = [
       ]},
     ],
     practice: [
-      { id: 'gd-p1', q: 'f(x)=x², x0=4, η=0.1, one GD step?', type: 'numeric', diff: 'easy', answer: '3.2', explain: '∇=2x=8, x1=4-0.8=3.2.' },
-      { id: 'gd-p2', q: 'Why does GD need small η?', type: 'short', diff: 'medium', answer: 'Taylor: f(x-η∇)=f(x)-η||∇||²+O(η²). If η too big, second order term dominates and may increase f.', explain: 'Descent lemma.' },
+      { id: 'gdescent-p1', q: 'f(x)=x², x0=4, η=0.1, one GD step?', type: 'numeric', diff: 'easy', answer: '3.2', explain: '∇=2x=8, x1=4-0.8=3.2.' },
+      { id: 'gdescent-p2', q: 'Why does GD need small η?', type: 'short', diff: 'medium', answer: 'Taylor: f(x-η∇)=f(x)-η||∇||²+O(η²). If η too big, second order term dominates and may increase f.', explain: 'Descent lemma.' },
     ],
   },
   {

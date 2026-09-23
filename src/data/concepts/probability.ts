@@ -137,7 +137,7 @@ export const probability: Concept[] = [
       ]},
     ],
     practice: [
-      { id: 'ind-p1', q: 'If P(A)=0.5, P(B)=0.5, and independent, P(A∪B)?', type: 'numeric', diff: 'easy', answer: '0.75', explain: '0.5+0.5-0.25=0.75.' },
+      { id: 'indep-p1', q: 'If P(A)=0.5, P(B)=0.5, and independent, P(A∪B)?', type: 'numeric', diff: 'easy', answer: '0.75', explain: '0.5+0.5-0.25=0.75.' },
     ],
   },
   {
@@ -283,7 +283,7 @@ export const probability: Concept[] = [
       ]},
     ],
     practice: [
-      { id: 'bb-p1', q: 'X~Bin(10,0.3). E[X] and Var?', type: 'numeric', diff: 'easy', answer: '3, 2.1', explain: 'np=3, np(1-p)=2.1.' },
+      { id: 'bern-p1', q: 'X~Bin(10,0.3). E[X] and Var?', type: 'numeric', diff: 'easy', answer: '3, 2.1', explain: 'np=3, np(1-p)=2.1.' },
     ],
   },
   {
@@ -335,7 +335,7 @@ export const probability: Concept[] = [
       ]},
     ],
     practice: [
-      { id: 'mc-p1', q: 'Chain with P=[[0,1],[1,0]]. Stationary?', type: 'short', diff: 'medium', answer: '[0.5,0.5] but periodic, does not converge from all starts, but stationary equation holds.', explain: 'Solve π=πP.' },
+      { id: 'markov-p1', q: 'Chain with P=[[0,1],[1,0]]. Stationary?', type: 'short', diff: 'medium', answer: '[0.5,0.5] but periodic, does not converge from all starts, but stationary equation holds.', explain: 'Solve π=πP.' },
     ],
   },
   {

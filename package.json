@@ -16,8 +16,12 @@
     "audit": "tsx scripts/audit.ts",
     "index:write": "tsx scripts/concept-index.ts write",
     "index:verify": "tsx scripts/concept-index.ts verify",
+    "refindex:write": "tsx scripts/reference-index.ts write",
+    "refindex:verify": "tsx scripts/reference-index.ts verify",
     "audit:json": "tsx scripts/audit.ts --json",
-    "verify": "npm run typecheck && npm test && npm run snippets:verify && npm run index:verify && npm run test:smoke"
+    "gates": "node scripts/ci-gates.mjs",
+    "verify": "npm run typecheck && npm test && npm run snippets:verify && npm run index:verify && npm run refindex:verify && npm run test:smoke",
+    "ci": "npm run verify && npm run build && npm run gates"
   },
   "dependencies": {
     "katex": "^0.16.11",

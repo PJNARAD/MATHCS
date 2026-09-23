@@ -19,7 +19,29 @@ import { paths } from '../src/data/paths';
 import { books } from '../src/data/books';
 import { snippetById, snippets, snippetsForConcept } from '../src/data/snippets';
 import { compareOutput, runSnippet } from '../src/lib/runner';
-import { DEFAULT_PROGRESS, LEGACY_KEY, RECENT_LIMIT, STORAGE_KEY, loadProgress, migrateProgress } from '../src/lib/store';
+import {
+  DAY_STAMP_LIMIT, DEFAULT_PROGRESS, LEGACY_KEY, LEGACY_KEYS, PROGRESS_VERSION, RECENT_LIMIT, STORAGE_KEY,
+  loadProgress, localDayKey, migrateProgress, nextPracticeRecord, normalizeDayStamps,
+} from '../src/lib/store';
+import type { PracticeRecord } from '../src/lib/store';
+import {
+  DAY_MS, REVIEW_INTERVALS_MS, SESSION_MODES, buildSession, dueCount, dueLabel, dueInMs, intervalFor,
+  isDue, isMissed, priorityOf, shuffled, sortQueue, stageCounts, stageOf, formatStageCounts,
+} from '../src/lib/srs';
+import {
+  closestToFinished, currentStreak, dayIndexOf, dayKeyOfIndex, domainStats, formatPct, lessonsOf,
+  longestStreak, nextUp, overallStats, recentEntries, savedEntries, streakCalendar, unfinishedVisits,
+  weakestDomains,
+} from '../src/lib/progress';
+import {
+  REFERENCE_FILES, extractReferences, serializeApplicationsIndex, serializeGlossaryIndex,
+  serializePracticeIndex, serializeTheoremIndex,
+} from '../src/lib/reference-index-file';
+import type { ConceptIndexEntry } from '../src/lib/concept-index-file';
+import {
+  clearReferenceCache, loadApplications, loadGlossary, loadPracticeIndex, loadTheorems,
+  practiceDomainMap, readApplications, readGlossary, readPracticeIndex, readTheorems, referenceSlices,
+} from '../src/lib/reference-loader';
 import {
   DEFAULT_READER_PREFERENCES, READER_FONT_SIZES, READER_WIDTHS,
   nextThemePreference, parseReaderPreferences, parseThemePreference, readerCssVariables,
@@ -323,7 +345,7 @@ console.log('visualization math');
   ok('gradient descent concept shows the gradient descent viz', /id: 'gradient-descent'/.test(optSrc) && !/prime-explorer/.test(optSrc));
 }
 
-console.log('progress store v2 + migration');
+console.log('progress store v3 + migration');
 {
   const v1 = {
     completed: ['a', 'b', 'a'],
@@ -332,13 +354,25 @@ console.log('progress store v2 + migration');
     pathStep: { p1: 3 },
   };
   const migrated = migrateProgress(v1);
-  ok('migration stamps version 2', migrated.version === 2, `got ${migrated.version}`);
+  ok('migration stamps the current version', migrated.version === PROGRESS_VERSION, `got ${migrated.version}`);
   ok('migration keeps completed (and de-duplicates)', JSON.stringify(migrated.completed) === '["a","b"]', JSON.stringify(migrated.completed));
   ok('migration keeps practice records', migrated.practice.q1.correct === true && migrated.practice.q1.attempts === 2);
   ok('migration keeps fieldInterest', migrated.fieldInterest === 'ml');
   ok('migration keeps pathStep', migrated.pathStep.p1 === 3);
-  ok('migration seeds the v2-only fields', migrated.bookmarks.length === 0 && migrated.recent.length === 0 && Object.keys(migrated.snippetRuns).length === 0);
+  ok('migration seeds the newer fields', migrated.bookmarks.length === 0 && migrated.recent.length === 0
+    && Object.keys(migrated.snippetRuns).length === 0 && migrated.dayStamps.length === 0);
   ok('migration is idempotent', JSON.stringify(migrateProgress(migrated)) === JSON.stringify(migrated));
+
+  // A pre-v3 record only knew "ever correct" plus a total. The split is
+  // reconstructed as one success and the rest misses, so an existing learner's
+  // review queue survives the upgrade instead of being thrown away.
+  ok('an old record is reconstructed as one success and the rest misses',
+    migrated.practice.q1.right === 1 && migrated.practice.q1.wrong === 1);
+  ok('an old record keeps its ever-correct verdict as the last result', migrated.practice.q1.lastCorrect === true);
+  ok('a record with no timestamp migrates to 0, never NaN', migrated.practice.q1.lastAt === 0);
+  const wrongOnly = migrateProgress({ practice: { q: { correct: false, attempts: 3 } } });
+  ok('a never-correct record keeps every attempt as a miss',
+    wrongOnly.practice.q.wrong === 3 && wrongOnly.practice.q.right === 0 && wrongOnly.practice.q.lastCorrect === false);
 
   const junk = migrateProgress({ completed: 'nope', practice: { q: { attempts: -4, correct: 'yes' } }, fieldInterest: 42, pathStep: { p: 'x', r: 2.7 }, recent: 'no' });
   ok('junk completed becomes an empty list', JSON.stringify(junk.completed) === '[]');
@@ -347,7 +381,8 @@ console.log('progress store v2 + migration');
   ok('truthy-but-not-true correct becomes false', junk.practice.q.correct === false);
   ok('string pathStep entries are dropped', junk.pathStep.p === undefined && junk.pathStep.r === 2);
   ok('non-array recent becomes an empty list', junk.recent.length === 0);
-  ok('migrateProgress survives null/string/number input', [null, undefined, 'x', 7, [], true].every((v) => migrateProgress(v).version === 2));
+  ok('migrateProgress survives null/string/number input',
+    [null, undefined, 'x', 7, [], true].every((v) => migrateProgress(v).version === PROGRESS_VERSION));
 
   const withRecent = migrateProgress({
     recent: [
@@ -367,16 +402,47 @@ console.log('progress store v2 + migration');
   ok('bad snippet run counts become 0', runs.snippetRuns.s2.runs === 0 && runs.snippetRuns.s2.lastAt === 0);
   ok('non-object snippet runs are dropped', runs.snippetRuns.s3 === undefined);
 
-  // fake storage: reads v1 out of the legacy key
+  // ---- v3: activity days -------------------------------------------------
+  const stamps = migrateProgress({ dayStamps: ['2026-03-05', '2026-03-01', '2026-03-05', 'not-a-day', 7, '2026-3-1'] });
+  ok('day stamps are de-duplicated and sorted', JSON.stringify(stamps.dayStamps) === '["2026-03-01","2026-03-05"]', JSON.stringify(stamps.dayStamps));
+  ok('malformed day stamps are dropped', stamps.dayStamps.every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)));
+  const many = Array.from({ length: DAY_STAMP_LIMIT + 40 }, (_, i) => new Date(Date.UTC(2024, 0, 1 + i)).toISOString().slice(0, 10));
+  const capped = normalizeDayStamps(many);
+  ok('day stamps are capped from the old end', capped.length === DAY_STAMP_LIMIT
+    && capped[capped.length - 1] === many[many.length - 1] && !capped.includes(many[0]));
+  ok('non-array day stamps become an empty list', normalizeDayStamps('nope').length === 0 && normalizeDayStamps(undefined).length === 0);
+
+  // ---- v3: the record an answer produces ---------------------------------
+  const first = nextPracticeRecord(undefined, false, 1000);
+  ok('a first miss records one attempt and one wrong',
+    first.attempts === 1 && first.wrong === 1 && first.right === 0 && first.correct === false && first.lastCorrect === false);
+  const second = nextPracticeRecord(first, true, 2000);
+  ok('a later success does not erase the earlier miss',
+    second.correct === true && second.lastCorrect === true && second.right === 1 && second.wrong === 1 && second.attempts === 2);
+  const third = nextPracticeRecord(second, true, 3000);
+  ok('successes accumulate so the schedule can lengthen', third.right === 2 && third.wrong === 1 && third.lastAt === 3000);
+  ok('a bad timestamp cannot overwrite the last attempt time', nextPracticeRecord(third, true, Number.NaN).lastAt === 3000);
+  ok('the store key moved with the version', STORAGE_KEY === `mathcs-progress-v${PROGRESS_VERSION}` && LEGACY_KEYS[0] === 'mathcs-progress-v2');
+
+  ok('localDayKey formats a timestamp as a local YYYY-MM-DD',
+    /^\d{4}-\d{2}-\d{2}$/.test(localDayKey(Date.now())) && localDayKey(new Date(2026, 0, 5, 12).getTime()) === '2026-01-05');
+
+  // fake storage: reads whichever key the payload was written under
   const fake = (data: Record<string, string>) => ({
     getItem: (k: string) => (k in data ? data[k] : null),
   });
   const fromV1 = loadProgress(fake({ [LEGACY_KEY]: JSON.stringify(v1) }));
-  ok('loadProgress migrates a v1 payload from the legacy key', fromV1.completed.join() === 'a,b' && fromV1.version === 2);
-  const fromV2 = loadProgress(fake({ [LEGACY_KEY]: JSON.stringify(v1), [STORAGE_KEY]: JSON.stringify({ ...DEFAULT_PROGRESS, bookmarks: ['zz'] }) }));
-  ok('loadProgress prefers the v2 key when both exist', fromV2.bookmarks.join() === 'zz');
+  ok('loadProgress migrates a v1 payload from the oldest key', fromV1.completed.join() === 'a,b' && fromV1.version === PROGRESS_VERSION);
+  const fromV2 = loadProgress(fake({ [LEGACY_KEYS[0]]: JSON.stringify({ completed: ['x'], bookmarks: ['zz'] }) }));
+  ok('loadProgress migrates a v2 payload and keeps its bookmarks', fromV2.bookmarks.join() === 'zz' && fromV2.version === PROGRESS_VERSION);
+  const newest = loadProgress(fake({
+    [LEGACY_KEY]: JSON.stringify(v1),
+    [LEGACY_KEYS[0]]: JSON.stringify({ completed: ['x'] }),
+    [STORAGE_KEY]: JSON.stringify({ ...DEFAULT_PROGRESS, completed: ['current'] }),
+  }));
+  ok('loadProgress prefers the current key when all three exist', newest.completed.join() === 'current');
   const corrupt = loadProgress({ getItem: () => '{not json' });
-  ok('corrupt JSON falls back to defaults', corrupt.completed.length === 0 && corrupt.version === 2);
+  ok('corrupt JSON falls back to defaults', corrupt.completed.length === 0 && corrupt.version === PROGRESS_VERSION);
   const empty = loadProgress({ getItem: () => null });
   ok('empty storage falls back to defaults', JSON.stringify(empty) === JSON.stringify(DEFAULT_PROGRESS));
 }
@@ -399,11 +465,23 @@ console.log('palette search');
   ok('index covers every CS field', docs.filter((d) => d.kind === 'field').length === fields.length);
   ok('index covers every path', docs.filter((d) => d.kind === 'path').length === paths.length);
   ok('index covers every book', docs.filter((d) => d.kind === 'book').length === books.length);
-  ok('index includes the static pages', docs.filter((d) => d.kind === 'page').length === 5);
+  const STATIC_PAGES = ['/', '/fields', '/paths', '/books', '/playground', '/practice', '/progress', '/glossary', '/theorems', '/applications'];
+  ok('index includes every static page the app serves', docs.filter((d) => d.kind === 'page').length === STATIC_PAGES.length,
+    `got ${docs.filter((d) => d.kind === 'page').length}`);
+  ok('every static route is in the palette', STATIC_PAGES.every((href) => docs.some((d) => d.kind === 'page' && d.href === href)));
   ok('every doc has a route', docs.every((d) => d.href.startsWith('/')));
   ok('every concept doc points at a real concept', docs.filter((d) => d.kind === 'concept').every((d) => getConcept(d.id) !== undefined));
   ok('doc ids are unique', new Set(docs.map((d) => `${d.kind}-${d.id}`)).size === docs.length);
-  ok('every route in the index is one the app serves', docs.every((d) => /\/(concept|domain|field|path)\/[a-z0-9-]+$/.test(d.href) || ['/', '/fields', '/paths', '/books', '/playground'].includes(d.href)));
+  // Derived from the router rather than a hand-kept list, so a palette entry
+  // can never point at a route the app does not render.
+  const routePaths = [...readFileSync('src/App.tsx', 'utf8').matchAll(/<Route path="([^"]+)"/g)]
+    .map((m) => m[1])
+    .filter((route) => route !== '*');
+  const routePatterns = routePaths.map((route) => new RegExp(`^${route.replace(/:[^/]+/g, '[a-z0-9-]+$')}$`));
+  ok('the router declares every documented route', STATIC_PAGES.every((href) => routePaths.includes(href)));
+  ok('every route in the index is one the app serves',
+    docs.every((d) => routePatterns.some((pattern) => pattern.test(d.href))),
+    docs.filter((d) => !routePatterns.some((pattern) => pattern.test(d.href))).map((d) => d.href).join(', '));
 
   ok('empty query returns no results', searchDocs('', docs).length === 0);
   ok('whitespace-only query returns no results', searchDocs('   ', docs).length === 0);
@@ -663,6 +741,265 @@ console.log('lattice math (D36, D30, N5)');
   let threw = false;
   try { divisorLattice(2 * 3 * 5 * 7); } catch { threw = true; }
   ok('divisorLattice rejects >3 distinct primes', threw);
+}
+
+console.log('generated reference indexes (glossary, theorems, applications, practice)');
+{
+  const extracted = extractReferences(allConcepts);
+  const countBlocks = (t: string): number =>
+    allConcepts.reduce((n, c) => n + c.content.filter((b) => (b as Block).t === t).length, 0);
+  const csItems = allConcepts.reduce(
+    (n, c) => n + c.content.reduce((m, b) => m + ((b as Block).t === 'cs' ? ((b as { items: unknown[] }).items.length) : 0), 0),
+    0,
+  );
+  const questions = allConcepts.reduce((n, c) => n + c.practice.length, 0);
+
+  ok('the committed glossary matches the content files',
+    readFileSync('src/data/glossary-index.ts', 'utf8') === serializeGlossaryIndex(allConcepts));
+  ok('the committed theorem index matches the content files',
+    readFileSync('src/data/theorem-index.ts', 'utf8') === serializeTheoremIndex(allConcepts));
+  ok('the committed applications index matches the content files',
+    readFileSync('src/data/applications-index.ts', 'utf8') === serializeApplicationsIndex(allConcepts));
+  ok('the committed practice manifest matches the content files',
+    readFileSync('src/data/practice-index.ts', 'utf8') === serializePracticeIndex(allConcepts));
+
+  ok('every def block becomes a glossary entry', extracted.glossary.length === countBlocks('def'),
+    `${extracted.glossary.length} vs ${countBlocks('def')}`);
+  ok('every thm block becomes a theorem entry', extracted.theorems.length === countBlocks('thm'));
+  ok('every cs item becomes an application entry', extracted.applications.length === csItems,
+    `${extracted.applications.length} vs ${csItems}`);
+  ok('every question appears in the practice manifest', extracted.practice.length === questions);
+
+  // The bug this manifest made visible: two lessons both calling a question
+  // "bs-p1" means one answer writes both records, because the store is keyed by
+  // question id. Uniqueness is now a guarded property.
+  const ids = extracted.practice.map((entry) => entry.id);
+  ok('practice question ids are globally unique', new Set(ids).size === ids.length,
+    `${new Set(ids).size} unique of ${ids.length}`);
+  ok('every concept keeps its own question ids distinct',
+    allConcepts.every((c) => new Set(c.practice.map((q) => q.id)).size === c.practice.length));
+
+  // Anchors are produced by the same outline builder ConceptPage renders with,
+  // so a deep link can never point at a block that has no id attribute.
+  const anchorsOf = new Map(allConcepts.map((c) => [c.id, new Set(buildOutline(c.content).map((e) => e.id))]));
+  const anchored = [...extracted.glossary, ...extracted.theorems, ...extracted.applications];
+  ok('every generated entry deep-links to a real anchor in its lesson',
+    anchored.every((entry) => anchorsOf.get(entry.conceptId)?.has(entry.anchor)),
+    anchored.filter((entry) => !anchorsOf.get(entry.conceptId)?.has(entry.anchor)).slice(0, 3).map((e) => `${e.conceptId}#${e.anchor}`).join(', '));
+  ok('every entry points at a published concept',
+    anchored.every((entry) => conceptMap.has(entry.conceptId)) && extracted.practice.every((e) => conceptMap.has(e.conceptId)));
+  ok('entries carry the domain of their lesson',
+    anchored.every((entry) => conceptMap.get(entry.conceptId)?.domain === entry.domain));
+  ok('the manifest carries no question text',
+    extracted.practice.every((entry) => !('q' in entry) && !('explain' in entry) && !('answer' in entry) && !('options' in entry)));
+  ok('theorems keep the proof steps the lesson wrote',
+    extracted.theorems.filter((t) => t.proof.length > 0).length
+      === allConcepts.reduce((n, c) => n + c.content.filter((b) => b.t === 'thm' && (b.proof ?? []).length > 0).length, 0));
+
+  // Delivery guards, mirroring the concept-index ones.
+  for (const file of REFERENCE_FILES) {
+    const src = readFileSync(file.path, 'utf8');
+    ok(`the ${file.label} slice imports neither the registry nor a domain module`,
+      !/lib\/concepts'/.test(src) && !/data\/concepts\//.test(src));
+    ok(`the ${file.label} slice is data only (no React, no loader)`,
+      !/from 'react'/.test(src) && !/concept-loader/.test(src));
+  }
+  const loaderSrc = readFileSync('src/lib/reference-loader.ts', 'utf8');
+  ok('the reference loader reaches the slices only through dynamic import()',
+    (loaderSrc.match(/import\('\.\.\/data\/(glossary|theorem|applications|practice)-index'\)/g) ?? []).length === REFERENCE_FILES.length
+    && !/from '\.\.\/data\/(glossary|theorem|applications|practice)-index'/.test(loaderSrc));
+  ok('no shipped page imports a generated slice statically',
+    readdirSync('src/pages').every((f) => !/from '\.\.\/data\/(glossary|theorem|applications|practice)-index'/.test(readFileSync(`src/pages/${f}`, 'utf8'))));
+
+  // The suspending read contract, same as readConcept.
+  clearReferenceCache();
+  ok('every slice starts cold', Object.values(referenceSlices).every((slice) => !slice.isLoaded()));
+  let suspended = 0;
+  for (const read of [readGlossary, readTheorems, readApplications, readPracticeIndex]) {
+    try { read(); } catch (thrown) { if (typeof (thrown as { then?: unknown } | null)?.then === 'function') suspended += 1; }
+  }
+  ok('each reader suspends (throws a promise) before its chunk arrives', suspended === REFERENCE_FILES.length, `got ${suspended}`);
+  const [glossary, theorems, applications, practice] = await Promise.all([
+    loadGlossary(), loadTheorems(), loadApplications(), loadPracticeIndex(),
+  ]);
+  ok('once loaded, the readers are synchronous',
+    readGlossary().length === glossary.length && readTheorems().length === theorems.length
+    && readApplications().length === applications.length && readPracticeIndex().length === practice.length);
+  ok('the loaded slices are the extracted ones',
+    glossary.length === extracted.glossary.length && practice.length === extracted.practice.length);
+  ok('practiceDomainMap resolves every question to its domain',
+    practiceDomainMap().size === practice.length && practice.every((e) => practiceDomainMap().get(e.id) === e.domain));
+}
+
+console.log('spaced repetition (practice trainer schedule)');
+{
+  const now = Date.UTC(2026, 2, 10, 12);
+  const day = DAY_MS;
+  const rec = (over: Partial<PracticeRecord> = {}): PracticeRecord => ({
+    correct: false, attempts: 0, right: 0, wrong: 0, lastCorrect: false, lastAt: 0, ...over,
+  });
+  const seen = rec({ correct: true, attempts: 1, right: 1, lastCorrect: true, lastAt: now });
+  const twice = rec({ correct: true, attempts: 2, right: 2, lastCorrect: true, lastAt: now });
+  const solid = rec({ correct: true, attempts: 3, right: 3, lastCorrect: true, lastAt: now });
+  const missed = rec({ attempts: 1, wrong: 1, lastCorrect: false, lastAt: now - 10 * day });
+
+  ok('the schedule is 1 / 3 / 7 days', JSON.stringify([...REVIEW_INTERVALS_MS]) === JSON.stringify([day, 3 * day, 7 * day]));
+  ok('an unattempted question is new and due now', stageOf(undefined) === 'new' && isDue(undefined, now));
+  ok('a miss is "learning" and comes straight back', stageOf(missed) === 'learning' && isDue(missed, now) && intervalFor(missed) === 0);
+  ok('one success waits a day', stageOf(seen) === 'review' && intervalFor(seen) === day);
+  ok('two successes wait three days', intervalFor(twice) === 3 * day);
+  ok('three successes wait a week and count as mastered', stageOf(solid) === 'mastered' && intervalFor(solid) === 7 * day);
+  ok('a question is due exactly when its gap has elapsed',
+    !isDue(rec({ ...seen, lastAt: now - day + 1000 }), now) && isDue(rec({ ...seen, lastAt: now - day }), now));
+  ok('dueInMs counts down to the gap and never goes negative',
+    dueInMs(seen, now) === day && dueInMs(rec({ ...seen, lastAt: now - 1000 }), now) === day - 1000
+    && dueInMs(rec({ ...seen, lastAt: now - 2 * day }), now) === 0);
+  ok('a pre-v3 record with no timestamp is treated as due, not dropped',
+    isDue(rec({ correct: true, attempts: 2, right: 1, lastCorrect: true, lastAt: 0 }), now));
+  ok('a wrong answer after a right one re-opens the question',
+    isMissed(rec({ correct: true, attempts: 2, right: 1, wrong: 1, lastCorrect: false, lastAt: now }))
+    && !isMissed(rec({ correct: true, attempts: 2, right: 2, wrong: 0, lastCorrect: true, lastAt: now })));
+
+  const pool = [
+    { id: 'q-solid', diff: 'easy' as const, conceptId: 'a' },
+    { id: 'q-missed', diff: 'medium' as const, conceptId: 'a' },
+    { id: 'q-new', diff: 'hard' as const, conceptId: 'b' },
+    { id: 'q-seen', diff: 'easy' as const, conceptId: 'b' },
+  ];
+  const records: Record<string, PracticeRecord> = {
+    'q-solid': { ...solid, lastAt: now - 8 * day },
+    'q-missed': missed,
+    'q-seen': { ...seen, lastAt: now - 2 * day },
+  };
+
+  const ordered = sortQueue(pool, records, now).map((item) => item.id);
+  ok('the queue asks new first, then the miss, then the overdue review',
+    ordered[0] === 'q-new' && ordered[1] === 'q-missed' && ordered[2] === 'q-seen', ordered.join(' → '));
+  ok('a long-mastered question goes last', ordered[ordered.length - 1] === 'q-solid', ordered.join(' → '));
+  ok('equal priority falls back to the question id, so a session is reproducible',
+    JSON.stringify(sortQueue(pool, {}, now)) === JSON.stringify(sortQueue(pool, {}, now))
+    && sortQueue(pool, {}, now).map((i) => i.id).join() === 'q-missed,q-new,q-seen,q-solid');
+  ok('priority ranks a new question above a due review', priorityOf(undefined, now) > priorityOf(missed, now));
+  ok('a question that is not due scores below every due one', priorityOf(solid, now) < priorityOf(missed, now));
+
+  ok('buildSession honours the limit', buildSession(pool, records, now, { limit: 2 }).length === 2);
+  ok('buildSession "new" returns only unattempted questions',
+    buildSession(pool, records, now, { mode: 'new', limit: 10 }).map((i) => i.id).join() === 'q-new');
+  ok('buildSession "missed" returns only last-attempt-wrong questions',
+    buildSession(pool, records, now, { mode: 'missed', limit: 10 }).map((i) => i.id).join() === 'q-missed');
+  ok('buildSession "all" keeps curriculum order',
+    buildSession(pool, records, now, { mode: 'all', limit: 10 }).map((i) => i.id).join() === pool.map((i) => i.id).join());
+  ok('buildSession filters difficulty before scheduling',
+    buildSession(pool, records, now, { difficulty: 'hard', limit: 10 }).every((i) => i.diff === 'hard')
+    && buildSession(pool, records, now, { difficulty: 'easy', limit: 10 }).length === 2);
+  ok('a zero or negative limit yields an empty session', buildSession(pool, records, now, { limit: 0 }).length === 0);
+  ok('a seeded shuffle is reproducible and keeps every item',
+    JSON.stringify(shuffled(pool, 7)) === JSON.stringify(shuffled(pool, 7))
+    && new Set(shuffled(pool, 7).map((i) => i.id)).size === pool.length);
+  ok('every documented session mode is one buildSession accepts',
+    SESSION_MODES.map((m) => m.id).join() === 'review,new,missed,all');
+
+  const counts = stageCounts(pool.map((i) => i.id), records);
+  ok('stageCounts adds up to the pool', Object.values(counts).reduce((a, b) => a + b, 0) === pool.length);
+  ok('stageCounts sees one of each stage here', counts.new === 1 && counts.learning === 1 && counts.review === 1 && counts.mastered === 1);
+  ok('formatStageCounts labels every stage', formatStageCounts(counts).length === 4 && formatStageCounts(counts).every((row) => row.label.length > 0));
+  // q-new is unattempted, q-missed was missed, q-seen is past its one-day gap
+  // and q-solid is past its seven-day gap: the whole pool is askable.
+  ok('dueCount counts what is askable right now', dueCount(pool.map((i) => i.id), records, now) === 4);
+  ok('dueCount drops to zero when every gap is still running',
+    dueCount(['q-seen'], { 'q-seen': rec({ ...seen, lastAt: now }) }, now) === 0);
+  ok('dueLabel says "new", "due now" and "in N d"',
+    dueLabel(undefined, now) === 'new'
+    && dueLabel(missed, now).includes('due now')
+    && dueLabel(rec({ ...seen, lastAt: now - 1000 }), now) === 'in 1 d');
+}
+
+console.log('progress maths (dashboard)');
+{
+  const entry = (over: Partial<ConceptIndexEntry> & { id: string; domain: string }): ConceptIndexEntry => ({
+    title: over.id, summary: '', level: 'core', topic: false, csFields: [], prerequisites: [], related: [],
+    practiceCount: 0, blockCount: 4, ...over,
+  });
+  const fixture: ConceptIndexEntry[] = [
+    entry({ id: 'logic', domain: 'discrete', level: 'foundational', topic: true, next: ['props'] }),
+    entry({ id: 'props', domain: 'discrete', level: 'foundational', parent: 'logic', prerequisites: ['logic'], next: ['ops'], practiceCount: 2 }),
+    entry({ id: 'ops', domain: 'discrete', level: 'core', parent: 'logic', prerequisites: ['props'], practiceCount: 3 }),
+    entry({ id: 'adv', domain: 'discrete', level: 'advanced', prerequisites: ['ops'], practiceCount: 1 }),
+    entry({ id: 'gcd', domain: 'number-theory', level: 'foundational', practiceCount: 2 }),
+  ];
+  const questionDomain = (qid: string): string | undefined => (qid.startsWith('nt-') ? 'number-theory' : 'discrete');
+  const state = {
+    ...DEFAULT_PROGRESS,
+    completed: ['props'],
+    practice: {
+      'p1': { correct: true, attempts: 1, right: 1, wrong: 0, lastCorrect: true, lastAt: 1000 },
+      'p2': { correct: false, attempts: 2, right: 0, wrong: 2, lastCorrect: false, lastAt: 1000 },
+      'nt-1': { correct: true, attempts: 1, right: 1, wrong: 0, lastCorrect: true, lastAt: 1000 },
+    },
+    bookmarks: ['adv', 'gcd', 'not-published'],
+    recent: [{ id: 'ops', at: 3 }, { id: 'props', at: 2 }, { id: 'gone', at: 1 }],
+    dayStamps: ['2026-03-03', '2026-03-04', '2026-03-05'],
+  };
+
+  ok('dayIndexOf and dayKeyOfIndex round-trip', dayKeyOfIndex(dayIndexOf('2026-03-05')) === '2026-03-05');
+  ok('a streak counts consecutive days', currentStreak(['2026-03-03', '2026-03-04', '2026-03-05'], '2026-03-05') === 3);
+  ok('a streak survives today not being studied yet', currentStreak(['2026-03-04'], '2026-03-05') === 1);
+  ok('a streak breaks once yesterday is missing', currentStreak(['2026-03-02'], '2026-03-05') === 0);
+  ok('duplicate stamps do not inflate a streak', currentStreak(['2026-03-05', '2026-03-05'], '2026-03-05') === 1);
+  ok('an empty history has no streak', currentStreak([], '2026-03-05') === 0);
+  ok('the longest streak finds the best run, not the latest',
+    longestStreak(['2026-01-01', '2026-01-02', '2026-02-10', '2026-02-11', '2026-02-12']) === 3);
+  const calendar = streakCalendar(['2026-03-04', '2026-03-05'], '2026-03-05', 7);
+  ok('the streak calendar ends today and is the requested length',
+    calendar.length === 7 && calendar[6].isToday && calendar[6].key === '2026-03-05');
+  ok('the streak calendar marks exactly the active days',
+    calendar.filter((cell) => cell.active).map((cell) => cell.key).join() === '2026-03-04,2026-03-05');
+
+  ok('lessonsOf excludes hub topics', lessonsOf(fixture).length === 4);
+  const rows = domainStats(fixture, state, questionDomain);
+  ok('domainStats returns one row per domain, in curriculum order',
+    rows.length === 2 && rows[0].domain === 'discrete' && rows[1].domain === 'number-theory');
+  ok('domainStats counts entries, lessons and questions',
+    rows[0].entries === 4 && rows[0].lessons === 3 && rows[0].questions === 6);
+  ok('domainStats counts completion', rows[0].completed === 1 && rows[0].lessonsCompleted === 1 && Math.abs(rows[0].pct - 0.25) < 1e-9);
+  ok('domainStats folds practice into the right domain',
+    rows[0].attempted === 2 && rows[0].correct === 1 && rows[1].attempted === 1 && rows[1].correct === 1);
+  ok('domainStats flags a question missed on its last attempt', rows[0].missed === 1 && rows[1].missed === 0);
+  ok('accuracy is null, never NaN, when nothing was attempted',
+    domainStats(fixture, DEFAULT_PROGRESS)[0].accuracy === null);
+  ok('domainStats works without a question map (completion only)',
+    domainStats(fixture, state).every((row) => row.attempted === 0 && row.accuracy === null));
+
+  const overall = overallStats(fixture, state, '2026-03-05', Date.UTC(2026, 2, 5, 12), questionDomain);
+  ok('overallStats reports the curriculum totals',
+    overall.entries === 5 && overall.lessons === 4 && overall.questions === 8 && overall.completed === 1);
+  ok('overallStats reports practice totals', overall.attempted === 3 && overall.correct === 2 && overall.missed === 1);
+  ok('overallStats carries the streak and the active days', overall.streak === 3 && overall.daysActive === 3 && overall.longestStreak === 3);
+  ok('overallStats counts the domains a learner has touched', overall.domainsTouched === 2 && overall.domainsComplete === 0);
+
+  const fresh = nextUp(fixture, [], 6);
+  ok('nextUp never recommends a hub topic', !fresh.some((e) => e.topic));
+  ok('nextUp treats a hub prerequisite as satisfied', fresh.some((e) => e.id === 'props'));
+  ok('nextUp hides lessons whose real prerequisites are unfinished', !fresh.some((e) => e.id === 'adv'));
+  const after = nextUp(fixture, ['props'], 6);
+  ok('nextUp puts what a finished lesson points at first', after[0].id === 'ops', after.map((e) => e.id).join(','));
+  ok('nextUp never recommends a finished lesson', !after.some((e) => e.id === 'props'));
+  ok('nextUp is empty once everything is done',
+    nextUp(fixture, ['props', 'ops', 'adv', 'gcd'], 6).length === 0);
+  ok('nextUp honours its limit', nextUp(fixture, [], 1).length === 1);
+
+  ok('weakestDomains needs evidence before it judges',
+    weakestDomains(rows, 3).length === 0 && weakestDomains(rows, 2)[0].domain === 'discrete');
+  ok('closestToFinished ranks the domain nearest done',
+    closestToFinished(domainStats(fixture, { ...state, completed: ['props', 'ops', 'adv', 'gcd'] }))[0].domain === 'discrete');
+  ok('savedEntries drops ids that are not published',
+    savedEntries(fixture, state).map((e) => e.id).join() === 'adv,gcd');
+  ok('recentEntries keeps store order and drops unknown ids',
+    recentEntries(fixture, state).map((e) => e.id).join() === 'ops,props');
+  ok('unfinishedVisits skips lessons already completed',
+    unfinishedVisits(fixture, state).map((e) => e.id).join() === 'ops');
+  ok('formatPct renders a missing ratio as an em dash',
+    formatPct(null) === '—' && formatPct(0.25) === '25%' && formatPct(1) === '100%');
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

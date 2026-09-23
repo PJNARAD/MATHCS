@@ -6,6 +6,26 @@ Interactive mathematics laboratory for CS students. Built with React + Vite + Ty
 
 This app uses client-side routing. SPA rewrites are configured via `vercel.json` and `netlify.toml` so deep links like `/concept/rsa` work after refresh on static hosts.
 
+## Routes
+
+| Route | What it is |
+|---|---|
+| `/` | Domains, fields, paths, books and the library surfaces |
+| `/domain/:id` | Every lesson of a domain, grouped by topic |
+| `/concept/:id` | A lesson: intuition, definitions, proofs, examples, viz, practice |
+| `/fields`, `/field/:id` | The 30 CS fields and the mathematics each stands on |
+| `/paths`, `/path/:id` | Staged curricula |
+| `/books` | Recommended reading by domain |
+| `/playground` | Run the verified snippets |
+| `/practice` | **Trainer**: questions from every lesson on a spaced-repetition schedule |
+| `/progress` | **Dashboard**: completion, accuracy, streak, what to read next |
+| `/glossary` | **Generated**: every `def` block as an A–Z dictionary |
+| `/theorems` | **Generated**: every `thm` block with its proof |
+| `/applications` | **Generated**: every `cs` call-out, filterable by CS field |
+
+Progress, bookmarks and practice history live in `localStorage` — there is no
+backend and no account.
+
 ## Scripts
 
 - `npm run dev` — dev server
@@ -13,12 +33,21 @@ This app uses client-side routing. SPA rewrites are configured via `vercel.json`
 - `npm run typecheck` — type checking
 - `npm test` — run tests
 - `npm run verify` — typecheck + tests + snippet verification + index freshness + SSR smoke
+- `npm run ci` — `verify` + `build` + the delivery gates (what CI runs)
 - `npm run audit` — content coverage report (depth, gaps, dangling references)
 - `npm run audit:json` — the same report as JSON
 - `npm run index:write` — regenerate `src/data/concept-index.ts` (the shipped,
   content-free concept index) after a content change
+- `npm run refindex:write` — regenerate the four reference slices
+  (`glossary-index`, `theorem-index`, `applications-index`, `practice-index`)
+  after a content change
+- `npm run gates` — after a build: zero dangling references, no route downloads a
+  lesson body, generated slices stay lazy, chunk budgets do not regress
 - `node scripts/route-size.mjs` — after a build, what each route downloads and
   whether it can reach a lesson body
+
+CI (`.github/workflows/verify.yml`) runs every one of those on pushes to `main`
+and on pull requests.
 
 ## Content
 
@@ -38,8 +67,22 @@ This app uses client-side routing. SPA rewrites are configured via `vercel.json`
   so a concept page fetches a single domain chunk. `src/lib/concepts.ts` remains
   the static registry, used by the tests and scripts only — a guard test fails if
   any shipped module imports it.
+- `src/data/{glossary,theorem,applications,practice}-index.ts` — **generated**
+  slices of the lessons for the library pages and the trainer: every definition,
+  every theorem and proof, every CS application call-out, and every question's
+  metadata (id, lesson, domain, difficulty, type — never its text). Each is its
+  own dynamic chunk read through `src/lib/reference-loader.ts`, so `/glossary`
+  never downloads the applications slice and no other route downloads any of
+  them. Entries carry the anchor id `buildOutline()` gives their block, so each
+  one deep-links into its lesson.
+- `src/lib/srs.ts` — the trainer's schedule: a miss returns immediately, then 1,
+  3 and 7 days after each success. Pure, so it is unit tested.
+- `src/lib/progress.ts` — the dashboard's arithmetic (streaks, per-domain
+  completion and accuracy, what to read next), also pure.
 
 ## Branches
 
 - `main` — production
-- `arena/01a0a1c8-mathcs` — feature branch for deploy fixes and UI layer
+- `arena/01a0cfff-mathcs` — feature branch for the learner surfaces
+  (`/practice`, `/progress`), the generated library (`/glossary`, `/theorems`,
+  `/applications`) and CI

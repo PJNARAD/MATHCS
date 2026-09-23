@@ -375,7 +375,7 @@ export const combinatorics: Concept[] = [
       ] },
     ],
     practice: [
-      { id: 'sb-p1', q: 'How many nonnegative integer solutions are there to x + y + z = 10?', type: 'numeric', diff: 'easy', answer: '66',
+      { id: 'sab-p1', q: 'How many nonnegative integer solutions are there to x + y + z = 10?', type: 'numeric', diff: 'easy', answer: '66',
         explain: 'C(10+3−1, 3−1) = C(12,2) = 66.',
       },
       { id: 'sb-p2', q: 'How many ways to distribute 7 identical balls into 4 distinct boxes if no box is empty?', type: 'numeric', diff: 'medium', answer: '20',

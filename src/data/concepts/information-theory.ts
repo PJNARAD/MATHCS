@@ -89,7 +89,7 @@ export const informationTheory: Concept[] = [
       ]},
     ],
     practice: [
-      { id: 'mi-p1', q: 'If X independent of Y, I(X;Y)?', type: 'numeric', diff: 'easy', answer: '0', explain: 'p(x,y)=p(x)p(y), log ratio 0.' },
+      { id: 'mutual-p1', q: 'If X independent of Y, I(X;Y)?', type: 'numeric', diff: 'easy', answer: '0', explain: 'p(x,y)=p(x)p(y), log ratio 0.' },
     ],
   },
   {
